@@ -12,40 +12,35 @@ class Big_Number{
     int len;
     int maxlen;
 public:
-
-    Big_Number() : len(1), maxlen(1) {
-        coef = new Base[1];
-        coef[0] = 0;
-    }
-
+    //конструктор 1 по умолчанию (создает число 0; maxLen = 1)
     Big_Number(int maxlen) : len(maxlen), maxlen(maxlen) {
         coef = new Base[maxlen];
-        for (int i = 0; i < maxlen; i++) {
-            coef[i] = 0;
+        if (maxlen == 1){
+            coef[0] = 0;
         }
-    }
-
-    Big_Number(int maxlen, bool rand) : len(maxlen), maxlen(maxlen) {
-        coef = new Base[maxlen];
-        if (rand) {
-            srand(time(0));
-            for (int i = 0; i < maxlen; ++i) {
-                coef[i] = std::rand() % 256;
-            }
-        }
-        else {
-            for (int i = 0; i < maxlen; ++i) {
+        else{
+            for (int i = 0; i < maxlen; i++) {
                 coef[i] = 0;
             }
         }
     }
+//конструктор 2 с параметром (maxLen передаем через параметр и все цифры числа заполняем нулями) и 3
+    //конструктор 3 с параметрами (maxLen передаем через параметр и цифры заполняем случайными числами)
+    Big_Number(int maxlen, bool randomz) : len(maxlen), maxlen(maxlen) {
+        coef = new Base[maxlen];
+        if(randomz){
+            for (int i = 0; i < maxlen; ++i) {
+                coef[i] = std::rand();
+            }
+        }
+    }//конструктор копирования
     Big_Number(const Big_Number& B_Num) : len(B_Num.len), maxlen(B_Num.maxlen) {
         coef = new Base[maxlen];
         for (int i = 0; i < len; ++i) {
             coef[i] = B_Num.coef[i];
         }
     }
-
+//деструктор
     ~Big_Number() {
         delete[] coef;
     }
@@ -68,8 +63,8 @@ public:
         string result;
         int i = 0;
         if(len > 1){
-        for (int j = len - 1; j >= 0; j--) {
-            int k = (sizeof(Base) * 8) - 4;
+            for (int j = len - 1; j >= 0; j--) {
+                int k = (sizeof(Base) * 8) - 4;
                 while (k >= 0) {
                     int tmp = (coef[j] >> k) & 0xF;
                     if (tmp >= 0 && tmp <= 9) {
@@ -127,9 +122,10 @@ public:
 };
 
 int main() {
-    Big_Number Num1;
+    srand(time(0));
+    Big_Number Num1(0);
     Big_Number Num2(126);
-    Big_Number Num3(8, true);
+    Big_Number Num3(12, true);
     cout << "Big_Num1: " << Num1.Big_Num_To_HEX() << "\n";
     cout << "Big_Num2: " << Num2.Big_Num_To_HEX() << "\n";
     cout << "Big_Num3: " << Num3.Big_Num_To_HEX() << "\n";
