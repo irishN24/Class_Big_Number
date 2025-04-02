@@ -3,53 +3,56 @@
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
-#define BASE_SIZE (sizeof(Base) * 8)
+#define BASE_SIZE (sizeof(Base) * 8) // размер Base в битах
 typedef unsigned char Base;
 typedef unsigned short int D_Base;
 using namespace std;
-/*
-1089842443235
-648161861187
 
-220952680791
-853556011746
-*/
 class Big_Number {
     Base* coef;
     int len;
     int maxlen;
 public:
     //конструктор 1 по умолчанию (создает число 0; maxLen = 1)
-    Big_Number() : len(1), maxlen(1) {
-        coef = new Base[maxlen];
-        coef[0] = 0;
-    }
-    //конструктор 2 с параметром (maxLen передаем через параметр и все цифры числа заполняем нулями) и 3
-    //конструктор 3 с параметрами (maxLen передаем через параметр и цифры заполняем случайными числами)
-    Big_Number(int max, int randomz) : len(max), maxlen(max) {
-        coef = new Base[max];
-        int size = BASE_SIZE;
-        maxlen = max;
-        len = max;
-        if (randomz == 0) {
-            for(int i = 0; i < maxlen; i++) {
-                coef[i] = 0;
+    Big_Number(int maxlen) : len(maxlen), maxlen(maxlen) {
+            coef = new Base[maxlen];
+            if (maxlen == 1) {
+                coef[0] = 0;
             }
-        }
-        else{
-            for (int i = 0; i < maxlen; ++i) {
-                coef[i] = std::rand();
-                if (size > 12) {
-                    for (int j = 1; i< ceil(size / 12); j++){
-                        coef[i] = coef[i] << (j * 12) | rand();
-                    }
+            else {
+                for (int i = 0; i < maxlen; i++) {
+                    coef[i] = 0;
                 }
             }
-            while (len > 1 && coef[len - 1] == 0) {
-                len--;
+        
+    }
+    //конструктор 2 с параметром (maxLen передаем через параметр и все цифры числа заполняем нулями) и 3
+        //конструктор 3 с параметрами (maxLen передаем через параметр и цифры заполняем случайными числами)
+    Big_Number(int max, int randomz) : len(maxlen), maxlen(maxlen) {
+        if (max != 0) {
+            coef = new Base[max];
+            int size = BASE_SIZE;
+            maxlen = max;
+            len = max;
+            if (randomz == 0) {
+                for (int i = 0; i < maxlen; i++) {
+                    coef[i] = 0;
+                }
+            }
+            else {
+                for (int i = 0; i < maxlen; ++i) {
+                    coef[i] = std::rand();
+                }
+                while (len > 1 && coef[len - 1] == 0) {
+                    len--;
+                }
             }
         }
-    }//конструктор копирования
+        else {
+            cout << "Incorrect lenght!!!\n";
+        }
+    }
+    //конструктор копирования
     Big_Number(const Big_Number& B_Num) : len(B_Num.len), maxlen(B_Num.maxlen) {
         coef = new Base[maxlen+1];
         for (int i = 0; i < len; ++i) {
@@ -59,7 +62,6 @@ public:
     //деструктор
     ~Big_Number() {
         delete[] coef;
-        coef = NULL;
     }
     //operator =
     Big_Number& operator=(const Big_Number& B_Num) {
@@ -95,7 +97,7 @@ public:
                 }
             }
         }
-        else {
+        else if (len <= 1){
             result = '0';
         }
         return result;
@@ -136,7 +138,6 @@ public:
             }
         }
     }
-    //сравнение БЧ
     bool operator ==(const Big_Number& x) {
         if (len != x.len) {
             return false;
@@ -163,9 +164,6 @@ public:
         if (len > x.len) {
             return true;
         }
-        else if(len < x.len){
-            return false;
-        }
         for (int i = len - 1; i > -1; i--) {
             if (coef[i] > x.coef[i]) {
                 return true;
@@ -179,9 +177,6 @@ public:
     bool operator <(const Big_Number& x) {
         if (len < x.len) {
             return true;
-        }
-        else if(len > x.len) {
-            return false;
         }
         for (int i = len - 1; i > -1; i--) {
             if (coef[i] < x.coef[i]) {
@@ -197,9 +192,6 @@ public:
         if (len > x.len) {
             return true;
         }
-        else if (len < x.len){
-            return false;
-        }
         for (int i = len - 1; i > -1; i--) {
             if (coef[i] >= x.coef[i]) {
                 return true;
@@ -213,9 +205,6 @@ public:
     bool operator <=(const Big_Number& x) {
         if (len < x.len) {
             return true;
-        }
-        else if (len > x.len){
-            return false;
         }
         for (int i = len - 1; i > -1; i--) {
             if (coef[i] <= x.coef[i]) {
@@ -231,24 +220,17 @@ public:
 
 int main() {
     srand(time(0));
-    Big_Number Num1;
-    Big_Number Num2(126, 0);
+    Big_Number Num1(1);
+    Big_Number Num2(126);
+    Big_Number Num3(12, 1);
     cout << "Big_Num1: " << Num1.Big_Num_To_HEX() << "\n";
     cout << "Big_Num2: " << Num2.Big_Num_To_HEX() << "\n";
+    cout << "Big_Num3: " << Num3.Big_Num_To_HEX() << "\n";
     string hexStr = "1a2b3c4d";
     Num1.HEX_TO_BN(hexStr);
     cout << "Hex representation: " << Num1.Big_Num_To_HEX() << "\n";
-   /* string hexStr2;
-    cout << "Enter a big number: ";
-    cin >> hexStr2;
-    Num2.HEX_TO_BN(hexStr2);
-    cout << "Hex representation: " << Num2.Big_Num_To_HEX() << "\n";*/
     Big_Number Num4(5, 1);
-    cout << "Big_Num4: " << Num4.Big_Num_To_HEX() << "\n";
-
     Big_Number Num5(5, 1);
-    cout << "Big_Num5: " << Num5.Big_Num_To_HEX() << "\n";
-
     if (Num4 == Num5) {
         cout << "Num 4: " << Num4.Big_Num_To_HEX() << " and Num5: " << Num5.Big_Num_To_HEX() << " are equal\n";
     }
