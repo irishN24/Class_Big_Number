@@ -14,27 +14,21 @@ class Big_Number {
     int maxlen;
 public:
     //конструктор 1 по умолчанию (создает число 0; maxLen = 1)
-    Big_Number(int maxlen) : len(maxlen), maxlen(maxlen) {
-            coef = new Base[maxlen];
-            if (maxlen == 1) {
-                coef[0] = 0;
+    Big_Number(int maxlen) : len(1), maxlen(maxlen) {
+        coef = new Base[maxlen];
+
+            for (int i = 0; i < maxlen; i++) {
+                coef[i] = 0;
             }
-            else {
-                for (int i = 0; i < maxlen; i++) {
-                    coef[i] = 0;
-                }
-            }
-        
+
     }
     //конструктор 2 с параметром (maxLen передаем через параметр и все цифры числа заполняем нулями) и 3
-        //конструктор 3 с параметрами (maxLen передаем через параметр и цифры заполняем случайными числами)
-    Big_Number(int max, int randomz) : len(maxlen), maxlen(maxlen) {
-        if (max != 0) {
+    //конструктор 3 с параметрами (maxLen передаем через параметр и цифры заполняем случайными числами)
+    Big_Number(int max, int randomz) : len(max), maxlen(max) {
+        if (max > 0) {
             coef = new Base[max];
-            int size = BASE_SIZE;
-            maxlen = max;
-            len = max;
             if (randomz == 0) {
+                len = 1;
                 for (int i = 0; i < maxlen; i++) {
                     coef[i] = 0;
                 }
@@ -54,8 +48,8 @@ public:
     }
     //конструктор копирования
     Big_Number(const Big_Number& B_Num) : len(B_Num.len), maxlen(B_Num.maxlen) {
-        coef = new Base[maxlen+1];
-        for (int i = 0; i < len; ++i) {
+        coef = new Base[maxlen];
+        for (int i = 0; i < maxlen; ++i) {
             coef[i] = B_Num.coef[i];
         }
     }
@@ -80,10 +74,9 @@ public:
     }
     string Big_Num_To_HEX() {
         string result;
-        int i = 0;
         if (len > 1) {
             for (int j = len - 1; j >= 0; j--) {
-                int k = (sizeof(Base) * 8) - 4;
+                int k = BASE_SIZE - 4;
                 while (k >= 0) {
                     int tmp = (coef[j] >> k) & 0xF;
                     if (tmp >= 0 && tmp <= 9) {
@@ -93,7 +86,6 @@ public:
                         result += (char)(tmp - 10 + 'a');
                     }
                     k -= 4;
-                    i++;
                 }
             }
         }
@@ -105,7 +97,7 @@ public:
     }
     void HEX_TO_BN(const string& str_16) {
         int length = str_16.length();
-        len = (length + (BASE_SIZE / 4) - 1) / (BASE_SIZE / 4);
+        len = (length - 1) / (BASE_SIZE / 4) + 1;
         maxlen = len;
         delete[] coef;
         coef = new Base[maxlen];
@@ -226,7 +218,7 @@ int main() {
     cout << "Big_Num1: " << Num1.Big_Num_To_HEX() << "\n";
     cout << "Big_Num2: " << Num2.Big_Num_To_HEX() << "\n";
     cout << "Big_Num3: " << Num3.Big_Num_To_HEX() << "\n";
-    string hexStr = "1a2b3c4d";
+    string hexStr = "000000000000001a2b3c4d";
     Num1.HEX_TO_BN(hexStr);
     cout << "Hex representation: " << Num1.Big_Num_To_HEX() << "\n";
     Big_Number Num4(5, 1);
