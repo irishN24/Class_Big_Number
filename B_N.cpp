@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
+#include <random>
 #define BASE_SIZE (sizeof(Base) * 8) // размер Base в битах
 typedef unsigned char Base;
 typedef unsigned short int D_Base;
@@ -14,36 +15,27 @@ class Big_Number {
     int maxlen;
 public:
     //конструктор 1 по умолчанию (создает число 0; maxLen = 1)
-    Big_Number(int maxlen) : len(1), maxlen(maxlen) {
-        coef = new Base[maxlen];
-
-            for (int i = 0; i < maxlen; i++) {
-                coef[i] = 0;
-            }
-
-    }
     //конструктор 2 с параметром (maxLen передаем через параметр и все цифры числа заполняем нулями) и 3
     //конструктор 3 с параметрами (maxLen передаем через параметр и цифры заполняем случайными числами)
-    Big_Number(int max, int randomz) : len(max), maxlen(max) {
-        if (max > 0) {
-            coef = new Base[max];
-            if (randomz == 0) {
-                len = 1;
-                for (int i = 0; i < maxlen; i++) {
-                    coef[i] = 0;
-                }
-            }
-            else {
-                for (int i = 0; i < maxlen; ++i) {
-                    coef[i] = std::rand();
-                }
-                while (len > 1 && coef[len - 1] == 0) {
-                    len--;
-                }
-            }
+    Big_Number(int max = 1, int randomz = 0) : len(max), maxlen(max) {
+        coef = new Base[max];
+        for (int i = 0; i < maxlen; ++i) {
+            coef[i] = 0;
         }
-        else {
-            cout << "Incorrect lenght!!!\n";
+        if (randomz != 0) {
+            mt19937 mt;
+            mt.seed(time(nullptr));
+            for (int i = 0; i < maxlen; ++i) {
+                coef[i] = mt();
+                if (BASE_SIZE > 12) {
+                    for (int j = 1; j < ceil(BASE_SIZE / 12); j++) {
+                        coef[i] = coef[i] << (j * 12) | mt();
+                    }
+                }
+            }   
+        }
+        while (len > 1 && coef[len - 1] == 0) {
+            len--;
         }
     }
     //конструктор копирования
@@ -89,14 +81,22 @@ public:
                 }
             }
         }
-        else if (len <= 1){
+        else if (len <= 1) {
             result = '0';
         }
         return result;
 
     }
-    void HEX_TO_BN(const string& str_16) {
+    void HEX_TO_BN(string& str_16) {
         int length = str_16.length();
+        int n = 0;
+        for (int i = 0; i < length && str_16[i] != 0; i++) {            
+             n++;           
+        }
+        for (int i = 0; i < length - n; ++i) {
+            str_16[i] = str_16[i + n];
+        }
+        length -= n; 
         len = (length - 1) / (BASE_SIZE / 4) + 1;
         maxlen = len;
         delete[] coef;
@@ -119,6 +119,8 @@ public:
                 }
                 else {
                     cout << "INCORRECT SYMBOL!!!\n";
+                    len = 1;
+                    coef[0] = 0;
                     return;
                 }
                 coef[j] |= tmp << k;
@@ -127,6 +129,9 @@ public:
                     k = 0;
                     j++;
                 }
+            }
+            while (len > 1 && coef[len - 1] == 0) {
+                len--;
             }
         }
     }
@@ -156,11 +161,14 @@ public:
         if (len > x.len) {
             return true;
         }
+        else if (len < x.len) {
+            return false;
+        }
         for (int i = len - 1; i > -1; i--) {
             if (coef[i] > x.coef[i]) {
                 return true;
             }
-            else {
+            else if (coef[i] < x.coef[i]){
                 return false;
             }
         }
@@ -170,11 +178,14 @@ public:
         if (len < x.len) {
             return true;
         }
+        else if(len > x.len){
+            return false;
+        }
         for (int i = len - 1; i > -1; i--) {
             if (coef[i] < x.coef[i]) {
                 return true;
             }
-            else {
+            else if (coef[i] > x.coef[i]){
                 return false;
             }
         }
@@ -184,11 +195,14 @@ public:
         if (len > x.len) {
             return true;
         }
+        else if (len < x.len) {
+            return false;
+        }
         for (int i = len - 1; i > -1; i--) {
-            if (coef[i] >= x.coef[i]) {
+            if (coef[i] > x.coef[i]) {
                 return true;
             }
-            else {
+            else if(coef[i] < x.coef[i]){
                 return false;
             }
         }
@@ -198,11 +212,14 @@ public:
         if (len < x.len) {
             return true;
         }
+        else if (len > x.len) {
+            return false;
+        }
         for (int i = len - 1; i > -1; i--) {
-            if (coef[i] <= x.coef[i]) {
+            if (coef[i] < x.coef[i]) {
                 return true;
             }
-            else {
+            else if(coef[i] > x.coef[i]) {
                 return false;
             }
         }
@@ -211,18 +228,17 @@ public:
 };
 
 int main() {
-    srand(time(0));
-    Big_Number Num1(1);
-    Big_Number Num2(126);
+    Big_Number Num1;
+    Big_Number Num2(12);
     Big_Number Num3(12, 1);
     cout << "Big_Num1: " << Num1.Big_Num_To_HEX() << "\n";
     cout << "Big_Num2: " << Num2.Big_Num_To_HEX() << "\n";
     cout << "Big_Num3: " << Num3.Big_Num_To_HEX() << "\n";
-    string hexStr = "000000000000001a2b3c4d";
+    string hexStr = "000000000000001a2b3c4d0000000000000000";
     Num1.HEX_TO_BN(hexStr);
     cout << "Hex representation: " << Num1.Big_Num_To_HEX() << "\n";
     Big_Number Num4(5, 1);
-    Big_Number Num5(5, 1);
+    Big_Number Num5(12, 1);
     if (Num4 == Num5) {
         cout << "Num 4: " << Num4.Big_Num_To_HEX() << " and Num5: " << Num5.Big_Num_To_HEX() << " are equal\n";
     }
