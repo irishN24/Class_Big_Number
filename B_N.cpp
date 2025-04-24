@@ -32,7 +32,7 @@ public:
                         coef[i] = coef[i] << (j * 12) | mt();
                     }
                 }
-            }   
+            }
         }
         while (len > 1 && coef[len - 1] == 0) {
             len--;
@@ -90,13 +90,13 @@ public:
     void HEX_TO_BN(string& str_16) {
         int length = str_16.length();
         int n = 0;
-        for (int i = 0; i < length && str_16[i] != 0; i++) {            
-             n++;           
+        for (int i = 0; i < length && str_16[i] != 0; i++) {
+            n++;
         }
         for (int i = 0; i < length - n; ++i) {
             str_16[i] = str_16[i + n];
         }
-        length -= n; 
+        length -= n;
         len = (length - 1) / (BASE_SIZE / 4) + 1;
         maxlen = len;
         delete[] coef;
@@ -225,8 +225,74 @@ public:
         }
         return true;
     }
-};
+    Big_Number operator +(const Big_Number &v){
+        int t = max(len, v.len) + 1;
+        int l = min(len, v.len);
+        Big_Number w(t);
+        D_Base tmp;
+        int j = 0; //Индекс по разрядам
+        int k = 0; //перенос
 
+        for(; j < l; j++){
+            tmp = (D_Base)coef[j] + (D_Base)v.coef[j] + (D_Base)k;
+            w.coef[j] = (Base)tmp;
+            k = (Base)(tmp>>BASE_SIZE);
+        }
+        for(; j < len; j++){
+            tmp = (D_Base)coef[j] + (D_Base)k;
+            w.coef[j] = (Base)tmp;
+            k = (Base)(tmp>>BASE_SIZE);
+        }
+        for(; j < v.len; j++){
+            tmp = (D_Base)v.coef[j] + (D_Base)k;
+            w.coef[j] = (Base)tmp;
+            k = (Base)(tmp>>BASE_SIZE);
+        }
+        w.coef[j] = k;
+        if(k == 0){
+            w.len = j;
+        }
+        else{
+            w.len = j + 1;
+        }
+        return w;
+    }
+    Big_Number &operator+=(const Big_Number &v);
+};
+Big_Number &Big_Number::operator+=(const Big_Number &v){
+    int t = max(len, v.len) + 1;
+    int l = min(len, v.len);
+    Base *tmpSumm = new Base[t];
+    D_Base tmp;
+    int j = 0; //Индекс по разрядам
+    int k = 0; //перенос
+
+    for(; j < l; j++){
+        tmp = (D_Base)coef[j] + (D_Base)v.coef[j] + (D_Base)k;
+        tmpSumm[j] = (Base)tmp;
+        k = (Base)(tmp>>BASE_SIZE);
+    }
+    for(; j < len; j++){
+        tmp = (D_Base)coef[j] + (D_Base)k;
+        tmpSumm[j] = (Base)tmp;
+        k = (Base)(tmp>>BASE_SIZE);
+    }
+    for(; j < v.len; j++){
+        tmp = (D_Base)v.coef[j] + (D_Base)k;
+        tmpSumm[j] = (Base)tmp;
+        k = (Base)(tmp>>BASE_SIZE);
+    }
+    tmpSumm[j] = k;
+    delete[] coef;
+    coef = tmpSumm;
+    if(k == 0){
+       len = j;
+    }
+    else{
+       len = j + 1;
+    }
+    return *this;
+}
 int main() {
     Big_Number Num1;
     Big_Number Num2(12);
