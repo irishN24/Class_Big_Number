@@ -4,6 +4,7 @@
 #include <ctime>
 #include <cmath>
 #include <random>
+#include <chrono>
 #define BASE_SIZE (sizeof(Base) * 8) // размер Base в битах
 typedef unsigned char Base;
 typedef unsigned short int D_Base;
@@ -22,14 +23,12 @@ public:
         for (int i = 0; i < maxlen; ++i) {
             coef[i] = 0;
         }
-        if (randomz != 0) {
-            mt19937 mt;
-            mt.seed(time(nullptr));
+        if (randomz != 0) {           
             for (int i = 0; i < maxlen; ++i) {
-                coef[i] = mt();
+                coef[i] = rand();
                 if (BASE_SIZE > 12) {
                     for (int j = 1; j < ceil(BASE_SIZE / 12); j++) {
-                        coef[i] = coef[i] << (j * 12) | mt();
+                        coef[i] = (rand() << 12) | (rand() & 0xFFF);
                     }
                 }
             }
@@ -79,6 +78,9 @@ public:
                     }
                     k -= 4;
                 }
+                while (len > 1 && coef[len - 1] == 0) {
+                    len--;
+                }
             }
         }
         else if (len <= 1) {
@@ -89,14 +91,14 @@ public:
     }
     void HEX_TO_BN(string& str_16) {
         int length = str_16.length();
-        int n = 0;
+       /* int n = 0;
         for (int i = 0; i < length && str_16[i] != 0; i++) {
             n++;
         }
         for (int i = 0; i < length - n; ++i) {
             str_16[i] = str_16[i + n];
         }
-        length -= n;
+        length -= n;*/
         len = (length - 1) / (BASE_SIZE / 4) + 1;
         maxlen = len;
         delete[] coef;
@@ -168,7 +170,7 @@ public:
             if (coef[i] > x.coef[i]) {
                 return true;
             }
-            else if (coef[i] < x.coef[i]){
+            else if (coef[i] < x.coef[i]) {
                 return false;
             }
         }
@@ -178,14 +180,14 @@ public:
         if (len < x.len) {
             return true;
         }
-        else if(len > x.len){
+        else if (len > x.len) {
             return false;
         }
         for (int i = len - 1; i > -1; i--) {
             if (coef[i] < x.coef[i]) {
                 return true;
             }
-            else if (coef[i] > x.coef[i]){
+            else if (coef[i] > x.coef[i]) {
                 return false;
             }
         }
@@ -202,7 +204,7 @@ public:
             if (coef[i] > x.coef[i]) {
                 return true;
             }
-            else if(coef[i] < x.coef[i]){
+            else if (coef[i] < x.coef[i]) {
                 return false;
             }
         }
@@ -219,13 +221,13 @@ public:
             if (coef[i] < x.coef[i]) {
                 return true;
             }
-            else if(coef[i] > x.coef[i]) {
+            else if (coef[i] > x.coef[i]) {
                 return false;
             }
         }
         return true;
     }
-    Big_Number operator +(const Big_Number &v){
+    Big_Number operator +(const Big_Number& v) {
         int t = max(len, v.len) + 1;
         int l = min(len, v.len);
         Big_Number w(t);
@@ -233,67 +235,68 @@ public:
         int j = 0; //Индекс по разрядам
         int k = 0; //перенос
 
-        for(; j < l; j++){
+        for (; j < l; j++) {
             tmp = (D_Base)coef[j] + (D_Base)v.coef[j] + (D_Base)k;
             w.coef[j] = (Base)tmp;
-            k = (Base)(tmp>>BASE_SIZE);
+            k = (Base)(tmp >> BASE_SIZE);
         }
-        for(; j < len; j++){
+        for (; j < len; j++) {
             tmp = (D_Base)coef[j] + (D_Base)k;
             w.coef[j] = (Base)tmp;
-            k = (Base)(tmp>>BASE_SIZE);
+            k = (Base)(tmp >> BASE_SIZE);
         }
-        for(; j < v.len; j++){
+        for (; j < v.len; j++) {
             tmp = (D_Base)v.coef[j] + (D_Base)k;
             w.coef[j] = (Base)tmp;
-            k = (Base)(tmp>>BASE_SIZE);
+            k = (Base)(tmp >> BASE_SIZE);
         }
         w.coef[j] = k;
-        if(k == 0){
+        if (k == 0) {
             w.len = j;
         }
-        else{
+        else {
             w.len = j + 1;
         }
         return w;
     }
-    Big_Number &operator+=(const Big_Number &v);
+    Big_Number& operator+=(const Big_Number& v);
 };
-Big_Number &Big_Number::operator+=(const Big_Number &v){
+Big_Number& Big_Number::operator+=(const Big_Number& v) {
     int t = max(len, v.len) + 1;
     int l = min(len, v.len);
-    Base *tmpSumm = new Base[t];
+    Base* tmpSumm = new Base[t];
     D_Base tmp;
     int j = 0; //Индекс по разрядам
     int k = 0; //перенос
 
-    for(; j < l; j++){
+    for (; j < l; j++) {
         tmp = (D_Base)coef[j] + (D_Base)v.coef[j] + (D_Base)k;
         tmpSumm[j] = (Base)tmp;
-        k = (Base)(tmp>>BASE_SIZE);
+        k = (Base)(tmp >> BASE_SIZE);
     }
-    for(; j < len; j++){
+    for (; j < len; j++) {
         tmp = (D_Base)coef[j] + (D_Base)k;
         tmpSumm[j] = (Base)tmp;
-        k = (Base)(tmp>>BASE_SIZE);
+        k = (Base)(tmp >> BASE_SIZE);
     }
-    for(; j < v.len; j++){
+    for (; j < v.len; j++) {
         tmp = (D_Base)v.coef[j] + (D_Base)k;
         tmpSumm[j] = (Base)tmp;
-        k = (Base)(tmp>>BASE_SIZE);
+        k = (Base)(tmp >> BASE_SIZE);
     }
     tmpSumm[j] = k;
     delete[] coef;
     coef = tmpSumm;
-    if(k == 0){
-       len = j;
+    if (k == 0) {
+        len = j;
     }
-    else{
-       len = j + 1;
+    else {
+        len = j + 1;
     }
     return *this;
 }
 int main() {
+    srand(time(0));
     Big_Number Num1;
     Big_Number Num2(12);
     Big_Number Num3(12, 1);
@@ -303,23 +306,30 @@ int main() {
     string hexStr = "000000000000001a2b3c4d0000000000000000";
     Num1.HEX_TO_BN(hexStr);
     cout << "Hex representation: " << Num1.Big_Num_To_HEX() << "\n";
-    Big_Number Num4(5, 1);
+    Big_Number Num4(12, 1);
+    cout << "Num 4: " << Num4.Big_Num_To_HEX() << "\n";
     Big_Number Num5(12, 1);
+    cout << "Num 5: " << Num5.Big_Num_To_HEX() << "\n";
     if (Num4 == Num5) {
-        cout << "Num 4: " << Num4.Big_Num_To_HEX() << " and Num5: " << Num5.Big_Num_To_HEX() << " are equal\n";
+        cout << "Num 4 and Num5 are equal\n";
     }
     else if (Num4 > Num5) {
-        cout << "Num 4: " << Num4.Big_Num_To_HEX() << " > Num5: " << Num5.Big_Num_To_HEX() << "\n";
+        cout << "Num 4 > Num5\n";
     }
     else if (Num4 < Num5) {
-        cout << "Num 4: " << Num4.Big_Num_To_HEX() << " < Num5: " << Num5.Big_Num_To_HEX() << "\n";
+        cout << "Num 4 < Num5\n";
     }
-    Num4 = Num5;
+   /* Num4 = Num5;
     if (Num4 >= Num5) {
         cout << "Num 4: " << Num4.Big_Num_To_HEX() << " >= Num5: " << Num5.Big_Num_To_HEX() << "\n";
     }
     else {
         cout << "Num 4: " << Num4.Big_Num_To_HEX() << " != Num5: " << Num5.Big_Num_To_HEX() << "\n";
-    }
+    }*/
+    Big_Number Num6 = Num4 + Num5;
+    cout << Num6.Big_Num_To_HEX() << "\n";
+    Num4 += Num6;
+    cout << Num4.Big_Num_To_HEX() << "\n";
+
     return 0;
 }
