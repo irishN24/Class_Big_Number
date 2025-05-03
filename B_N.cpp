@@ -19,16 +19,21 @@ public:
     //конструктор 2 с параметром (maxLen передаем через параметр и все цифры числа заполняем нулями) и 3
     //конструктор 3 с параметрами (maxLen передаем через параметр и цифры заполняем случайными числами)
     Big_Number(int max = 1, int randomz = 0) : len(max), maxlen(max) {
+        if(max <= 0){
+            len = maxlen = 1;
+            coef = new Base[1] {0};
+            return;
+        }
         coef = new Base[max];
         for (int i = 0; i < maxlen; ++i) {
             coef[i] = 0;
         }
-        if (randomz != 0) {           
+        if (randomz != 0) {
             for (int i = 0; i < maxlen; ++i) {
                 coef[i] = rand();
-                if (BASE_SIZE > 12) {
-                    for (int j = 1; j < ceil(BASE_SIZE / 12); j++) {
-                        coef[i] = (rand() << 12) | (rand() & 0xFFF);
+                if (sizeof(Base) > 1) {
+                    for (int j = 0; j < sizeof(Base); ++j) {
+                        coef[i] = (coef[i] << 8) | rand();
                     }
                 }
             }
@@ -91,14 +96,6 @@ public:
     }
     void HEX_TO_BN(string& str_16) {
         int length = str_16.length();
-       /* int n = 0;
-        for (int i = 0; i < length && str_16[i] != 0; i++) {
-            n++;
-        }
-        for (int i = 0; i < length - n; ++i) {
-            str_16[i] = str_16[i + n];
-        }
-        length -= n;*/
         len = (length - 1) / (BASE_SIZE / 4) + 1;
         maxlen = len;
         delete[] coef;
@@ -260,6 +257,37 @@ public:
         return w;
     }
     Big_Number& operator+=(const Big_Number& v);
+    Big_Number operator -(const Big_Number& v){
+        if(*this >= v){
+            D_Base tmp;
+            int j = 0; // Индекс по коэффициентам
+            D_Base k = 0; // займ
+            Big_Number result(len);
+
+            for (; j < v.len; j++){
+                tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
+                tmp = (D_Base)(tmp - v.coef[j] - k);
+                result.coef[j] = (Base)tmp;
+                k = (D_Base)!(tmp >> BASE_SIZE);
+            }
+            for(; j < len; j++){
+                tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
+                tmp -= (D_Base)k;
+                result.coef[j] = (Base)tmp;
+                k = (D_Base)!(tmp >> BASE_SIZE);
+            }
+            result.len = len;
+            while(result.len > 1 && result.coef[result.len - 1] == 0){
+                result.len--;
+            }
+            return result;
+        }
+        else{
+            cout << "ERROR: U < V!!!";
+            return 0;
+        }
+    }
+    Big_Number& operator -=(const Big_Number &v);
 };
 Big_Number& Big_Number::operator+=(const Big_Number& v) {
     int t = max(len, v.len) + 1;
@@ -295,6 +323,36 @@ Big_Number& Big_Number::operator+=(const Big_Number& v) {
     }
     return *this;
 }
+Big_Number& Big_Number::operator -=(const Big_Number& v){
+    if(*this >= v){
+        D_Base tmp;
+        int j = 0; // Индекс по коэффициентам
+        D_Base k = 0; // займ
+        Base *tmpres = new Base[len];
+
+        for (; j < v.len; j++){
+            tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
+            tmp = tmp - v.coef[j] - k;
+            tmpres[j] = (Base)tmp;
+            k = !(tmp >> BASE_SIZE);
+        }
+        for(; j < len; j++){
+            tmp = (1 << BASE_SIZE) | coef[j];
+            tmp -= k;
+            tmpres[j] = (Base)tmp;
+            k = !(tmp >> BASE_SIZE);
+        }
+        delete[] coef;
+        coef = tmpres;
+        while(len > 1 && coef[len - 1]==0){
+            len--;
+        }
+        return *this;
+    }
+    else{
+        cout << "ERROR: U < V!!!";
+    }
+}
 int main() {
     srand(time(0));
     Big_Number Num1;
@@ -319,17 +377,17 @@ int main() {
     else if (Num4 < Num5) {
         cout << "Num 4 < Num5\n";
     }
-   /* Num4 = Num5;
-    if (Num4 >= Num5) {
-        cout << "Num 4: " << Num4.Big_Num_To_HEX() << " >= Num5: " << Num5.Big_Num_To_HEX() << "\n";
-    }
-    else {
-        cout << "Num 4: " << Num4.Big_Num_To_HEX() << " != Num5: " << Num5.Big_Num_To_HEX() << "\n";
-    }*/
     Big_Number Num6 = Num4 + Num5;
     cout << Num6.Big_Num_To_HEX() << "\n";
     Num4 += Num6;
     cout << Num4.Big_Num_To_HEX() << "\n";
+    Big_Number Num7(7, 1);
+    cout << "Num 7: " << Num7.Big_Num_To_HEX() << "\n";
+    Big_Number Num8(5, 1);
+    cout << "Num 8: " << Num8.Big_Num_To_HEX() << "\n";
+    Big_Number Num9 = Num7 - Num8;
+    cout << "Num 9: " << Num9.Big_Num_To_HEX() << "\n";
+
 
     return 0;
 }
