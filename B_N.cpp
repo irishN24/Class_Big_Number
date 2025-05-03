@@ -31,9 +31,9 @@ public:
         if (randomz != 0) {
             for (int i = 0; i < maxlen; ++i) {
                 coef[i] = rand();
-                if (sizeof(Base) > 1) {
-                    for (int j = 0; j < sizeof(Base); ++j) {
-                        coef[i] = (coef[i] << 8) | rand();
+                if (sizeof(Base) > 2) {
+                    for (int j = 0; j < sizeof(Base)/2; ++j) {
+                        coef[i] = (coef[i] << 16) | rand();
                     }
                 }
             }
@@ -88,8 +88,12 @@ public:
                 }
             }
         }
-        else if (len <= 1) {
+        else if (len <= 0 || coef == nullptr) {
             result = '0';
+        }
+        size_t k = result.find_first_not_of('0');
+        if(k != string::npos){
+            result = result.substr(k);
         }
         return result;
 
