@@ -19,9 +19,9 @@ public:
     //конструктор 2 с параметром (maxLen передаем через параметр и все цифры числа заполняем нулями) и 3
     //конструктор 3 с параметрами (maxLen передаем через параметр и цифры заполняем случайными числами)
     Big_Number(int max = 1, int randomz = 0) : len(max), maxlen(max) {
-        if(max <= 0){
+        if (max <= 0) {
             len = maxlen = 1;
-            coef = new Base[1] {0};
+            coef = new Base[1]{ 0 };
             return;
         }
         coef = new Base[max];
@@ -32,7 +32,7 @@ public:
             for (int i = 0; i < maxlen; ++i) {
                 coef[i] = rand();
                 if (sizeof(Base) > 2) {
-                    for (int j = 0; j < sizeof(Base)/2; ++j) {
+                    for (int j = 0; j < sizeof(Base) / 2; ++j) {
                         coef[i] = (coef[i] << 16) | rand();
                     }
                 }
@@ -92,7 +92,7 @@ public:
             result = '0';
         }
         size_t k = result.find_first_not_of('0');
-        if(k != string::npos){
+        if (k != string::npos) {
             result = result.substr(k);
         }
         return result;
@@ -261,37 +261,111 @@ public:
         return w;
     }
     Big_Number& operator+=(const Big_Number& v);
-    Big_Number operator -(const Big_Number& v){
-        if(*this >= v){
+    Big_Number operator -(const Big_Number& v) {
+        if (*this >= v) {
             D_Base tmp;
             int j = 0; // Индекс по коэффициентам
             D_Base k = 0; // займ
             Big_Number result(len);
 
-            for (; j < v.len; j++){
+            for (; j < v.len; j++) {
                 tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
                 tmp = (D_Base)(tmp - v.coef[j] - k);
                 result.coef[j] = (Base)tmp;
                 k = (D_Base)!(tmp >> BASE_SIZE);
             }
-            for(; j < len; j++){
+            for (; j < len; j++) {
                 tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
                 tmp -= (D_Base)k;
                 result.coef[j] = (Base)tmp;
                 k = (D_Base)!(tmp >> BASE_SIZE);
             }
             result.len = len;
-            while(result.len > 1 && result.coef[result.len - 1] == 0){
+            while (result.len > 1 && result.coef[result.len - 1] == 0) {
                 result.len--;
             }
             return result;
         }
-        else{
+        else {
             cout << "ERROR: U < V!!!";
             return 0;
         }
     }
-    Big_Number& operator -=(const Big_Number &v);
+    Big_Number& operator -=(const Big_Number& v);
+    Big_Number operator *(const Base &a) {
+        Big_Number w(len + 1);
+        int j = 0;
+        Base k = 0;
+        D_Base tmp;
+        for (; j < len; j++) {
+            tmp = (D_Base)coef[j] * (D_Base)a + (D_Base)k;
+            w.coef[j] = (Base)tmp;
+            k = (Base)(tmp >> BASE_SIZE);
+        }
+        w.coef[j] = k;
+        w.len = len + 1;
+        while (w.len > 1 && w.coef[len - 1] == 0) {
+            w.len--;
+        }
+        return w;
+    }
+    Big_Number operator *(const Big_Number& v) {
+        Big_Number w(len + v.len);
+        int j = 0;
+        D_Base tmp;
+        for (; j < v.len; j++) {
+            if (v.coef[j] != 0) {
+                Base k = 0;
+                int i = 0;
+                for (; i < len; i++) {
+                    tmp = (D_Base)coef[i] * v.coef[j] + (D_Base)k + (D_Base)w.coef[i + j];
+                    w.coef[i + j] = (Base)tmp;
+                    k = (Base)(tmp >> BASE_SIZE);
+                }
+                w.coef[len + j] = k;
+            }
+        }
+        w.len = len + v.len;
+        while (w.len > 1 && w.coef[len - 1] == 0) {
+            w.len--;
+        }
+        return w;
+    }
+    Big_Number operator /(const Base &a) {
+        if (a == 0) {
+            cout << " Division by zero!!!";
+            return 0;
+        }
+        Big_Number q(len);
+        D_Base r = 0;
+        int j = len - 1;
+        D_Base tmp;
+        for (; j >= 0; j--) {
+            tmp = (D_Base)(r << BASE_SIZE) + (D_Base)coef[j];
+            q.coef[j] = (Base)(tmp / (D_Base)a);
+            r = (Base)(tmp % (D_Base)a);
+        }
+        q.len = len;
+        while (q.len > 1 && q.coef[len - 1] == 0) {
+            q.len--;
+        }
+        return q;
+    }
+    Big_Number operator %(const Base& a) {
+        if (a == 0) {
+            cout << " Division by zero!!!";
+            return 0;
+        }
+        Big_Number q(1);
+        D_Base r = 0;
+        int j = 0;
+        for (; j < len; j++) {
+            D_Base tmp = ((D_Base)((r << BASE_SIZE) + (D_Base)coef[len-1-j]));
+            r = (Base)(tmp % (D_Base)a);
+        }
+        q = r;
+        return q;
+    }
 };
 Big_Number& Big_Number::operator+=(const Big_Number& v) {
     int t = max(len, v.len) + 1;
@@ -327,20 +401,20 @@ Big_Number& Big_Number::operator+=(const Big_Number& v) {
     }
     return *this;
 }
-Big_Number& Big_Number::operator -=(const Big_Number& v){
-    if(*this >= v){
+Big_Number& Big_Number::operator -=(const Big_Number& v) {
+    if (*this >= v) {
         D_Base tmp;
         int j = 0; // Индекс по коэффициентам
         D_Base k = 0; // займ
-        Base *tmpres = new Base[len];
+        Base* tmpres = new Base[len];
 
-        for (; j < v.len; j++){
+        for (; j < v.len; j++) {
             tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
             tmp = tmp - v.coef[j] - k;
             tmpres[j] = (Base)tmp;
             k = !(tmp >> BASE_SIZE);
         }
-        for(; j < len; j++){
+        for (; j < len; j++) {
             tmp = (1 << BASE_SIZE) | coef[j];
             tmp -= k;
             tmpres[j] = (Base)tmp;
@@ -348,12 +422,12 @@ Big_Number& Big_Number::operator -=(const Big_Number& v){
         }
         delete[] coef;
         coef = tmpres;
-        while(len > 1 && coef[len - 1]==0){
+        while (len > 1 && coef[len - 1] == 0) {
             len--;
         }
         return *this;
     }
-    else{
+    else {
         cout << "ERROR: U < V!!!";
     }
 }
@@ -391,7 +465,8 @@ int main() {
     cout << "Num 8: " << Num8.Big_Num_To_HEX() << "\n";
     Big_Number Num9 = Num7 - Num8;
     cout << "Num 9: " << Num9.Big_Num_To_HEX() << "\n";
-
+    Big_Number Num10 = Num7 % 2;
+    cout << "Num 10: " << Num10.Big_Num_To_HEX() << "\n";
 
     return 0;
 }
