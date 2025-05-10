@@ -6,8 +6,8 @@
 #include <random>
 #include <chrono>
 #define BASE_SIZE (sizeof(Base) * 8) // размер Base в битах
-typedef unsigned int Base;
-typedef unsigned long long int D_Base;
+typedef unsigned char Base;
+typedef unsigned short D_Base;
 using namespace std;
 
 class Big_Number {
@@ -310,6 +310,7 @@ public:
         }
         return w;
     }
+    Big_Number& operator *=(const Base &a);
     Big_Number operator *(const Big_Number& v) {
         Big_Number w(len + v.len);
         int j = 0;
@@ -332,6 +333,7 @@ public:
         }
         return w;
     }
+    Big_Number& operator *=(const Big_Number &v);
     Big_Number operator /(const Base &a) {
         if (a == 0) {
             cout << " Division by zero!!!";
@@ -352,9 +354,10 @@ public:
         }
         return q;
     }
+    Big_Number& operator /=(const Base &a);
     Big_Number operator %(const Base& a) {
         if (a == 0) {
-            cout << " Division by zero!!!";
+            cout << "Division by zero!!!";
             return Big_Number(1);
         }
         D_Base r = 0;
@@ -364,6 +367,11 @@ public:
         Big_Number res(1);
         res.coef[0] = r;
         return res;
+    }
+    Big_Number& operator %=(const Base &a);
+    friend ostream operator <<(ostream &, const Big_Number &) {
+
+
     }
 };
 Big_Number& Big_Number::operator+=(const Big_Number& v) {
@@ -429,6 +437,86 @@ Big_Number& Big_Number::operator -=(const Big_Number& v) {
         cout << "ERROR: U < V!!!";
     }
 }
+Big_Number& Big_Number::operator*=(const Base &a){
+    int j = 0;
+    Base k = 0;
+    D_Base tmp;
+    Base *tmpMul = new Base[len + 1];
+    for (; j < len; j++) {
+        tmp = (D_Base)coef[j] * (D_Base)a + (D_Base)k;
+        tmpMul[j] = (Base)tmp;
+        k = (Base)(tmp >> BASE_SIZE);
+    }
+    tmpMul[j] = k;
+    int lenght = len + 1;
+    while (lenght > 1 && tmpMul[len - 1] == 0) {
+        lenght--;
+    }
+    delete[] coef;
+    coef = tmpMul;
+    len = lenght;
+    return *this;
+}
+Big_Number& Big_Number::operator*=(const Big_Number &v){
+    Base *tmpMul = new Base[len + v.len];
+    int j = 0;
+    D_Base tmp;
+    for (; j < v.len; j++) {
+        if (v.coef[j] != 0) {
+            Base k = 0;
+            int i = 0;
+            for (; i < len; i++) {
+                tmp = (D_Base)coef[i] * v.coef[j] + (D_Base)k + (D_Base)tmpMul[i + j];
+                tmpMul[i + j] = (Base)tmp;
+                k = (Base)(tmp >> BASE_SIZE);
+            }
+            tmpMul[len + j] = k;
+        }
+    }
+    delete[] coef;
+    len = len + v.len;
+    coef = tmpMul;
+    while (len > 1 && coef[len - 1] == 0) {
+        len--;
+    }
+    return *this;
+}
+Big_Number& Big_Number::operator/=(const Base &a){
+    if (a == 0) {
+        exit(0);
+    }
+    D_Base r = 0;
+    int j = len - 1;
+    D_Base tmp;
+    Base *tmpDiv = new Base[len];
+    for (; j >= 0; j--) {
+        tmp = (D_Base)(r << BASE_SIZE) + (D_Base)coef[j];
+        tmpDiv[j] = (Base)(tmp / (D_Base)a);
+        r = (Base)(tmp % (D_Base)a);
+    }
+    delete[] coef;
+    int lenght = len;
+    while (lenght > 1 && tmpDiv[len - 1] == 0) {
+        lenght--;
+    }
+    coef = tmpDiv;
+    len = lenght;
+    return *this;
+}
+Big_Number& Big_Number::operator%=(const Base &a){
+    if (a == 0) {
+        exit(0);
+    }
+    D_Base r = 0;
+    for(int i = len - 1; i >= 0; i--){
+        r = (D_Base)((r << BASE_SIZE) | coef[i] % a);
+    }
+    delete[] coef;
+    coef = new Base[1];
+    len = 1;
+    coef[0] = r;
+    return *this;
+}
 int main() {
     srand(time(0));
     /*Big_Number Num1;
@@ -470,8 +558,9 @@ int main() {
     Num7 -= Num8;
     cout <<"Num7 -= Num8 = " << Num7.Big_Num_To_HEX() << "\n";
 
-    /*Big_Number Num10 = Num7 % 2;
-    cout << "Num 10: " << Num10.Big_Num_To_HEX() << "\n";*/
+    Big_Number Num10 = Num7 % 2;
+    Num10 %= 0;
+    cout << "Num 10: " << Num10.Big_Num_To_HEX() << "\n";
 
     return 0;
 }
