@@ -336,8 +336,7 @@ public:
     Big_Number& operator *=(const Big_Number &v);
     Big_Number operator /(const Base &a) {
         if (a == 0) {
-            cout << " Division by zero!!!";
-            return Big_Number(1);
+            throw invalid_argument("DIVISION BY ZEROOOO!!!!");
         }
         Big_Number q(len);
         D_Base r = 0;
@@ -357,8 +356,7 @@ public:
     Big_Number& operator /=(const Base &a);
     Big_Number operator %(const Base& a) {
         if (a == 0) {
-            cout << "Division by zero!!!";
-            return Big_Number(1);
+            throw invalid_argument("DIVISION BY ZEROOOO!!!!");
         }
         D_Base r = 0;
         for(int i = len - 1; i >= 0; i--){
@@ -483,7 +481,7 @@ Big_Number& Big_Number::operator*=(const Big_Number &v){
 }
 Big_Number& Big_Number::operator/=(const Base &a){
     if (a == 0) {
-        exit(0);
+        throw invalid_argument("DIVISION BY ZEROOOO!!!!");
     }
     D_Base r = 0;
     int j = len - 1;
@@ -505,7 +503,7 @@ Big_Number& Big_Number::operator/=(const Base &a){
 }
 Big_Number& Big_Number::operator%=(const Base &a){
     if (a == 0) {
-        exit(0);
+        throw invalid_argument("DIVISION BY ZEROOOO!!!!");
     }
     D_Base r = 0;
     for(int i = len - 1; i >= 0; i--){
