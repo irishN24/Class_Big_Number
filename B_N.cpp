@@ -6,8 +6,8 @@
 #include <random>
 #include <chrono>
 #define BASE_SIZE (sizeof(Base) * 8) // размер Base в битах
-typedef unsigned char Base;
-typedef unsigned short int D_Base;
+typedef unsigned int Base;
+typedef unsigned long long int D_Base;
 using namespace std;
 
 class Big_Number {
@@ -53,7 +53,6 @@ public:
     ~Big_Number() {
         delete[] coef;
     }
-    //operator =
     Big_Number& operator=(const Big_Number& B_Num) {
         if (this != &B_Num) {
             delete[] coef;
@@ -88,12 +87,15 @@ public:
                 }
             }
         }
-        else if (len <= 0 || coef == nullptr) {
+        if (len < 0 || coef == nullptr) {
             result = '0';
         }
         size_t k = result.find_first_not_of('0');
         if (k != string::npos) {
             result = result.substr(k);
+        }
+        else{
+            result = '0';
         }
         return result;
 
@@ -229,9 +231,8 @@ public:
         return true;
     }
     Big_Number operator +(const Big_Number& v) {
-        int t = max(len, v.len) + 1;
         int l = min(len, v.len);
-        Big_Number w(t);
+        Big_Number w(max(len, v.len) + 1);
         D_Base tmp;
         int j = 0; //Индекс по разрядам
         int k = 0; //перенос
@@ -264,8 +265,8 @@ public:
     Big_Number operator -(const Big_Number& v) {
         if (*this >= v) {
             D_Base tmp;
-            int j = 0; // Индекс по коэффициентам
-            D_Base k = 0; // займ
+            int j = 0;      // Индекс по коэффициентам
+            D_Base k = 0;   // займ
             Big_Number result(len);
 
             for (; j < v.len; j++) {
@@ -288,7 +289,7 @@ public:
         }
         else {
             cout << "ERROR: U < V!!!";
-            return 0;
+            return -1;
         }
     }
     Big_Number& operator -=(const Big_Number& v);
@@ -334,7 +335,7 @@ public:
     Big_Number operator /(const Base &a) {
         if (a == 0) {
             cout << " Division by zero!!!";
-            return 0;
+            return Big_Number(1);
         }
         Big_Number q(len);
         D_Base r = 0;
@@ -354,23 +355,20 @@ public:
     Big_Number operator %(const Base& a) {
         if (a == 0) {
             cout << " Division by zero!!!";
-            return 0;
+            return Big_Number(1);
         }
-        Big_Number q(1);
         D_Base r = 0;
-        int j = 0;
-        for (; j < len; j++) {
-            D_Base tmp = ((D_Base)((r << BASE_SIZE) + (D_Base)coef[len-1-j]));
-            r = (Base)(tmp % (D_Base)a);
+        for(int i = len - 1; i >= 0; i--){
+            r = (D_Base)((r << BASE_SIZE) | coef[i] % a);
         }
-        q = r;
-        return q;
+        Big_Number res(1);
+        res.coef[0] = r;
+        return res;
     }
 };
 Big_Number& Big_Number::operator+=(const Big_Number& v) {
-    int t = max(len, v.len) + 1;
     int l = min(len, v.len);
-    Base* tmpSumm = new Base[t];
+    Base* tmpSumm = new Base[max(len, v.len) + 1];
     D_Base tmp;
     int j = 0; //Индекс по разрядам
     int k = 0; //перенос
@@ -433,7 +431,7 @@ Big_Number& Big_Number::operator -=(const Big_Number& v) {
 }
 int main() {
     srand(time(0));
-    Big_Number Num1;
+    /*Big_Number Num1;
     Big_Number Num2(12);
     Big_Number Num3(12, 1);
     cout << "Big_Num1: " << Num1.Big_Num_To_HEX() << "\n";
@@ -441,12 +439,13 @@ int main() {
     cout << "Big_Num3: " << Num3.Big_Num_To_HEX() << "\n";
     string hexStr = "000000000000001a2b3c4d0000000000000000";
     Num1.HEX_TO_BN(hexStr);
-    cout << "Hex representation: " << Num1.Big_Num_To_HEX() << "\n";
+    cout << "Hex representation: " << Num1.Big_Num_To_HEX() << "\n";*/
+
     Big_Number Num4(12, 1);
     cout << "Num 4: " << Num4.Big_Num_To_HEX() << "\n";
-    Big_Number Num5(12, 1);
+    Big_Number Num5(10, 1);
     cout << "Num 5: " << Num5.Big_Num_To_HEX() << "\n";
-    if (Num4 == Num5) {
+    /*if (Num4 == Num5) {
         cout << "Num 4 and Num5 are equal\n";
     }
     else if (Num4 > Num5) {
@@ -454,19 +453,25 @@ int main() {
     }
     else if (Num4 < Num5) {
         cout << "Num 4 < Num5\n";
-    }
+    }*/
+
     Big_Number Num6 = Num4 + Num5;
-    cout << Num6.Big_Num_To_HEX() << "\n";
-    Num4 += Num6;
-    cout << Num4.Big_Num_To_HEX() << "\n";
+    cout << "Num6 = Num4 + Num5 = " << Num6.Big_Num_To_HEX() << "\n";
+    /*Num4 += Num6;
+    cout <<"Num4 += Num6: " << Num4.Big_Num_To_HEX() << "\n";*/
+    Num6 -=Num4;
+    cout << "Num6 = " << Num6.Big_Num_To_HEX() << "\n";
     Big_Number Num7(7, 1);
     cout << "Num 7: " << Num7.Big_Num_To_HEX() << "\n";
     Big_Number Num8(5, 1);
     cout << "Num 8: " << Num8.Big_Num_To_HEX() << "\n";
     Big_Number Num9 = Num7 - Num8;
-    cout << "Num 9: " << Num9.Big_Num_To_HEX() << "\n";
-    Big_Number Num10 = Num7 % 2;
-    cout << "Num 10: " << Num10.Big_Num_To_HEX() << "\n";
+    cout << "Num 9 = Num7 - Num8 = " << Num9.Big_Num_To_HEX() << "\n";
+    Num7 -= Num8;
+    cout <<"Num7 -= Num8 = " << Num7.Big_Num_To_HEX() << "\n";
+
+    /*Big_Number Num10 = Num7 % 2;
+    cout << "Num 10: " << Num10.Big_Num_To_HEX() << "\n";*/
 
     return 0;
 }
