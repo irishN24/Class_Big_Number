@@ -380,54 +380,64 @@ public:
         if(v.len == 1){
             return *this / v.coef[0];
         }
-        int m = len - v.len; //разность длин
-        D_Base b = (D_Base)1 << BASE_SIZE; //система счисления
+        D_Base b = (D_Base)1 << BASE_SIZE;
         D_Base d = b /(D_Base)(v.coef[v.len - 1] + (Base)1);
-        int j = m;
         int k = 0;
         Big_Number u1 = *this;
         u1 *= d;
         Big_Number v1 = v;
         v1 *= d;
-        Big_Number res(m+1);
-        if(u1 == len){
+
+        if(u1.len == len){
             u1.maxlen++;
-            u1.len = maxlen;
-            delete[] u1.coef;
-            u1.coef = new Base[maxlen];
-            for(int i = 0; i < len; i++){
-                u1.coef[i] = coef[i];
+            Base* new_u = new Base[u1.maxlen];
+            for(int i = 0; i < u1.len; i++){
+                new_u[i] = u1.coef[i];
             }
-            u1 *= d;
+            new_u[u1.len] = 0;
+            delete[] u1.coef;
+            u1.coef = new_u;
             u1.len++;
-            u1.coef[u1.len - 1] = 0;
         }
-        for(; j > -1; j--){
-            D_Base q_tmp = (D_Base)((D_Base)(((D_Base)(u1.coef[j + v1.len]) * (D_Base)b) + (D_Base)(u1.coef[j + v1.len - 1]))/(D_Base)(v1.coef[v1.len - 1]));
-            D_Base r_tmp = (D_Base)((D_Base)((D_Base)((D_Base)(u1.coef[j + v1.len]) * (D_Base)b) + (D_Base)(u1.coef[j + v1.len - 1]))%(D_Base)(v1.coef[v1.len - 1]));
-            if(q_tmp == b || (D_Base)((D_Base)q_tmp * (D_Base)v1.coef[v1.len - 2]) > (D_Base)((D_Base)((D_Base)b * (D_Base)r_tmp) + (D_Base)(u1.coef[j + v1.len - 2]))){
+        int m = u1.len - v1.len; //разность длин
+        Big_Number res(m+1);
+        int j = m;
+        for(; j >= 0; j--){
+            D_Base q_tmp = ((D_Base)u1.coef[j + v1.len] * b + (D_Base)u1.coef[j + v1.len - 1])/(D_Base)(v1.coef[v1.len - 1]);
+            D_Base r_tmp = ((D_Base)u1.coef[j + v1.len] * b + (D_Base)u1.coef[j + v1.len - 1])%(D_Base)(v1.coef[v1.len - 1]);
+            if(q_tmp >= b || (q_tmp * v1.coef[v1.len - 2]) > ((b * r_tmp) + u1.coef[j + v1.len - 2])){
                 q_tmp--;
-                r_tmp = (D_Base)r_tmp + (D_Base)(v1.coef[v1.len - 1]);
-                if((D_Base)r_tmp < b){
-                    if(q_tmp == b || (D_Base)((D_Base)q_tmp * (D_Base)v1.coef[v1.len - 2]) > (D_Base)((D_Base)((D_Base)b * (D_Base)r_tmp) + (D_Base)(u1.coef[j + v1.len - 2]))){
-                        q_tmp--;
-                    }
+                r_tmp += (v1.coef[v1.len - 1]);
+                if(r_tmp >= b){
+                    break;
                 }
             }
-            Big_Number q(v1.len + 1);
-            for(int i = 0; i < v1.len + 1; i++){
-                q.coef[i] = u1.coef[j + i];
+            Big_Number tmp(v1.len + 1);
+            for(int i = 0; i < v1.len; i++){
+                D_Base p = (D_Base)v1.coef[i] * q_tmp + k;
+                tmp.coef[i] = (Base)p;
+                k = (Base)(p >> BASE_SIZE);
             }
-            if(q < v1*(Base)q_tmp){
+            tmp.coef[v1.len] = k;
+            tmp.len = v1.len + (k != 0);
+            int borrow = 0;
+            for(int i = 0; i < tmp.len; i++){
+                D_Base diff = (D_Base)u1.coef[j + i] - tmp.coef[i] - k;
+                u1.coef[j + i] = (Base)diff;
+                borrow = (diff >> BASE_SIZE) ? 1 : 0;
+            }
+            if(borrow){
                 q_tmp--;
+                k = 0;
+                for(int i = 0; i < v1.len; i++){
+                    D_Base sum = (D_Base)u1.coef[i + j] + v1.coef[i] + k;
+                    u1.coef[j + i] = (Base)sum;
+                    k = (sum >> BASE_SIZE);
+                }
             }
-            q = q - v1 * (Base)(q_tmp);
-            res.coef[j] = (Base)q_tmp;
-            for(int i = 0; i < v1.len+1; i++){
-                u1.coef[j + i] = q.coef[i];
-            }
+        res.coef[j] = (Base)q_tmp;
         }
-        while(res.len > 1 && res.coef[u1.len - 1] == 0){
+        while(res.len > 1 && res.coef[res.len - 1] == 0){
             res.len--;
         }
         return res;
