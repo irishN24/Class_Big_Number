@@ -371,77 +371,67 @@ public:
     }
     Big_Number& operator %=(const Base &a);
     Big_Number operator /(const Big_Number &v){
-        if(v.len == 1 && v.coef[0] == 0){
-            throw invalid_argument("Invalid argument!!!");
-        }
-        if(*this < v){
-            Big_Number res0(1);
-            return res0;
-        }
         if(v.len == 1){
             return *this / v.coef[0];
         }
-        D_Base b = (D_Base)1 << BASE_SIZE;
-        D_Base d = b /(D_Base)(v.coef[v.len - 1] + (Base)1);
-        int k = 0;
-        Big_Number u1 = *this;
-        u1 *= d;
-        Big_Number v1 = v;
-        v1 *= d;
-
-        if(u1.len == len){
-            u1.maxlen++;
-            Base* new_u = new Base[u1.maxlen];
-            for(int i = 0; i < u1.len; i++){
-                new_u[i] = u1.coef[i];
-            }
-            new_u[u1.len] = 0;
-            delete[] u1.coef;
-            u1.coef = new_u;
-            u1.len++;
+        if(*this < v){
+            return Big_Number(1);
         }
-        int m = u1.len - v1.len; //разность длин
-        Big_Number res(m+1);
-        int j = m;
-        for(; j >= 0; j--){
-            D_Base q_tmp = ((D_Base)u1.coef[j + v1.len] * b + (D_Base)u1.coef[j + v1.len - 1])/(D_Base)(v1.coef[v1.len - 1]);
-            D_Base r_tmp = ((D_Base)u1.coef[j + v1.len] * b + (D_Base)u1.coef[j + v1.len - 1])%(D_Base)(v1.coef[v1.len - 1]);
-            if(q_tmp >= b || (q_tmp * v1.coef[v1.len - 2]) > ((b * r_tmp) + u1.coef[j + v1.len - 2])){
+        D_Base d = ((D_Base)(1) << BASE_SIZE) / (D_Base)(v.coef[v.len - 1]) + 1;
+        Big_Number u = *this;
+        u *= (Base)d;
+        Big_Number vn = v;
+        vn *= (Base)d;
+        int m = u.len - vn.len;
+        Big_Number q(m + 1);
+        if(u.len == len){
+            Base* new_u = new Base[u.len + 1];
+            memcpy(new_u, u.coef, u.len * sizeof(Base));
+            new_u[u.len] = 0;
+            delete[] u.coef;
+            u.coef = new_u;
+            u.len++;
+            u.maxlen = u.len;
+        }        
+        for(int j = m; j >= 0; j--){
+            D_Base q_tmp = ((D_Base)(u.coef[j + vn.len]) << BASE_SIZE) + u.coef[j + vn.len - 1];
+            q_tmp /= vn.coef[vn.len - 1];
+            D_Base r_tmp = (((D_Base)(u.coef[j + vn.len]) << BASE_SIZE) + u.coef[j + vn.len - 1])%vn.coef[vn.len - 1];
+            while(q_tmp >= ((D_Base)(1) << BASE_SIZE) ||
+                   (q_tmp * vn.coef[vn.len - 2]) > ((r_tmp << BASE_SIZE) + u.coef[j + vn.len - 2])){
                 q_tmp--;
-                r_tmp += (v1.coef[v1.len - 1]);
-                if(r_tmp >= b){
+                r_tmp += vn.coef[vn.len - 1];
+                if(r_tmp >= ((D_Base)(1) << BASE_SIZE)){
                     break;
                 }
             }
-            Big_Number tmp(v1.len + 1);
-            for(int i = 0; i < v1.len; i++){
-                D_Base p = (D_Base)v1.coef[i] * q_tmp + k;
-                tmp.coef[i] = (Base)p;
-                k = (Base)(p >> BASE_SIZE);
-            }
-            tmp.coef[v1.len] = k;
-            tmp.len = v1.len + (k != 0);
-            int borrow = 0;
-            for(int i = 0; i < tmp.len; i++){
-                D_Base diff = (D_Base)u1.coef[j + i] - tmp.coef[i] - k;
-                u1.coef[j + i] = (Base)diff;
-                borrow = (diff >> BASE_SIZE) ? 1 : 0;
-            }
-            if(borrow){
-                q_tmp--;
-                k = 0;
-                for(int i = 0; i < v1.len; i++){
-                    D_Base sum = (D_Base)u1.coef[i + j] + v1.coef[i] + k;
-                    u1.coef[j + i] = (Base)sum;
-                    k = (sum >> BASE_SIZE);
+            D_Base k = 0;
+            for(int i = 0; i < vn.len; i++){
+                D_Base p = q_tmp * vn.coef[i] + k;
+                k = p >> BASE_SIZE;
+                if(u.coef[j + i] < (p & ((D_Base)(1) << BASE_SIZE) - 1)){
+                    u.coef[j + i] += ((Base)(1) << BASE_SIZE)-(Base)(p);
+                    k++;
+                }
+                else{
+                    u.coef[j + i] -= (Base)(p);
                 }
             }
-        res.coef[j] = (Base)q_tmp;
+            if(u.coef[j + vn.len] < k){
+                q_tmp--;
+                k = 0;
+                for(int i = 0; i < vn.len; i++){
+                    D_Base sum = (D_Base)(u.coef[j + i]) + vn.coef[i] + k;
+                    u.coef[j + i] = (Base)sum;
+                    k = sum >> BASE_SIZE;
+                }
+            }
+            q.coef[j] = (Base)q_tmp;
         }
-        while(res.len > 1 && res.coef[res.len - 1] == 0){
-            res.len--;
+        while(q.len > 1 && q.coef[q.len - 1] == 0){
+            q.len--;
         }
-        return res;
+        return q;
     }
     Big_Number& operator /=(const Big_Number &v);
     void cout_10();
@@ -636,67 +626,10 @@ Big_Number& Big_Number::operator%=(const Base &a){
     coef[0] = r;
     return *this;
 }
-/*Big_Number& Big_Number::operator/=(const Big_Number &v){
-    if(*this >= v){
-        if(v.len == 1){
-            *this /= v.coef[0];
-            return *this;
-        }
-        int m = len - v.len; //разность длин
-        D_Base b = ((D_Base)1 << BASE_SIZE); //система счисления
-        Base d = b /(Base)(v.coef[v.len - 1] + (Base)1);
-        Big_Number u1 = *this * d;
-        Big_Number v1 = v;
-        v1 *= d;
-        Big_Number q(m + 1);
-        q.len = m+1;
-
-        if(u1 == len){
-            u1.maxlen++;
-            u1.len = u1.maxlen;
-            delete[] u1.coef;
-            u1.coef = new Base[u1.maxlen];
-            for(int i = 0; i < len; i++){
-                u1.coef[i] = coef[i];
-            }
-            u1 *= d;
-            u1.len++;
-            u1.coef[u1.len - 1] = 0;
-        }
-        for(int j = m; j >=0; j--){
-            D_Base q_tmp = (D_Base)((u1.coef[j + v1.len]) * b) + (D_Base)(u1.coef[j + v1.len - 1])/(D_Base)(v1.coef[v1.len - 1]);
-            D_Base r_tmp = (D_Base)((u1.coef[j + v1.len]) * b) + (D_Base)(u1.coef[j + v1.len - 1])%(D_Base)(v1.coef[v1.len - 1]);
-            if(q_tmp == b || (D_Base)(q_tmp * v1.coef[v1.len - 2]) > (D_Base)(r_tmp + u1.coef[j + v1.len - 2])){
-                q_tmp--;
-                r_tmp += (D_Base)v1.coef[v1.len - 1];
-                if(r_tmp < b){
-                    if(q_tmp == b || (D_Base)(q_tmp * v1.coef[v1.len - 2]) > (D_Base)(r_tmp + u1.coef[j + v1.len - 2])){
-                        q_tmp--;
-                    }
-                }
-            }
-            Big_Number q(v1.len + 1);
-            for(int i = 0; i < v1.len + 1; i++){
-                q.coef[i] = u1.coef[j + i];
-            }
-            if(q < v1*(Base)q_tmp){
-                q_tmp--;
-            }
-            q -= (v1 * (Base)(q_tmp));
-            for(int i = 0; i < v1.len+1; i++){
-                u1.coef[j + i] = q.coef[i];
-            }
-        }
-        while(u1.len > 1 && u1.coef[u1.len - 1] == 0){
-            u1.len--;
-        }
-        return u1/d;
-    }
-    else{
-        *this = Big_Number(1);
-        return *this;
-    }
-}*/
+Big_Number& Big_Number::operator/=(const Big_Number &v){
+   *this = *this / v;
+   return *this;
+}
 void Big_Number::cout_10(){
     Big_Number resNum = *this;
     Big_Number z;
@@ -732,7 +665,7 @@ void Big_Number::cin_10(){
     }
     *this = Num_tmp;
 }
-void test(){
+/*void test(){
     int max_len = 1000;
     int N = 1000;
     Big_Number A, D, Q, R;
@@ -746,7 +679,7 @@ void test(){
         Q = A / D;
         R = A % D;
     }while(A == Q * D + R && A - R == Q * D && R < D && --N >= 0);
-}
+}*/
 int main() {
     srand(time(0));
     /*Big_Number Num1;
@@ -760,9 +693,10 @@ int main() {
     cout << "Hex representation: " << Num1.Big_Num_To_HEX() << "\n";*/
 
     Big_Number Num4(7, 1);
-    cout << "Num 4: " << Num4.Big_Num_To_HEX() << "\n";
-    Big_Number Num5(7, 1);
-    cout << "Num 5: " << Num5.Big_Num_To_HEX() << "\n";
+    Num4.cout_10();
+    cout << "Num 4: " << Num4 << "\n";
+    Big_Number Num5(2, 1);
+    cout << "Num 5: " << Num5 << "\n";
     /*if (Num4 == Num5) {
         cout << "Num 4 and Num5 are equal\n";
     }
