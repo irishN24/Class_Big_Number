@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <algorithm>
 #include <string>
 #include <cstdlib>
 #include <ctime>
@@ -443,6 +444,8 @@ public:
         return res;
     }
     Big_Number& operator /=(const Big_Number &v);
+    void cout_10();
+    void cin_10();
     friend istream &operator >>(istream &in, Big_Number &bn) {
         char* str = new char[1000];
         int j = 0;
@@ -477,7 +480,16 @@ public:
         return in;
     }
     friend ostream &operator <<(ostream &os, const Big_Number &bn) {
-
+        for(int j = bn.len - 1; j >= 0; j--){
+            os.width(BASE_SIZE / 4);
+            os.fill('0');
+            os << hex << (int)bn.coef[j];
+        }
+        os << dec;
+        if(bn.len == 0){
+            os<<'0'<<"\n";
+        }
+        return os;
     }
 };
 Big_Number& Big_Number::operator+=(const Big_Number& v) {
@@ -685,6 +697,56 @@ Big_Number& Big_Number::operator%=(const Base &a){
         return *this;
     }
 }*/
+void Big_Number::cout_10(){
+    Big_Number resNum = *this;
+    Big_Number z;
+    string str;
+    while(resNum != z){
+        Big_Number tmp = resNum % 10;
+        str.push_back(tmp.coef[0] + '0');
+        resNum = resNum / 10;
+    }
+    reverse(str.begin(), str.end());
+    cout << str << "\n";
+}
+void Big_Number::cin_10(){
+    int j = 0;
+    string str;
+    getline(cin, str);
+    int k = str.length();
+    Base tmp = 0;
+    Big_Number Num_tmp;
+    Big_Number res_Num;
+    for(;j < k; j++){
+        if('0' > str[j] || str[j] > '9'){
+            throw invalid_argument("Incorrect str!!!");
+        }
+        tmp = str[j] - '0';
+        Num_tmp = Num_tmp * 10;
+        res_Num.coef[0] = (Base)tmp;
+        Num_tmp += res_Num;
+    }
+    Num_tmp.len = Num_tmp.maxlen;
+    while(Num_tmp.len > 1 && Num_tmp.coef[Num_tmp.len - 1] == 0){
+        Num_tmp.len--;
+    }
+    *this = Num_tmp;
+}
+void test(){
+    int max_len = 1000;
+    int N = 1000;
+    Big_Number A, D, Q, R;
+    do{
+        int len_A = rand() % max_len + 1;
+        int len_d = rand() % max_len + 1;
+        Big_Number E(len_A, 1);
+        Big_Number G(len_A, 1);
+        A = E;
+        D = G;
+        Q = A / D;
+        R = A % D;
+    }while(A == Q * D + R && A - R == Q * D && R < D && --N >= 0);
+}
 int main() {
     srand(time(0));
     /*Big_Number Num1;
@@ -715,7 +777,8 @@ int main() {
     cout << "Num6 = Num4 * Num5 = " << Num6.Big_Num_To_HEX() << "\n";
     Num6 = Num6 / Num5;
     cout << "Num6 = " << Num6.Big_Num_To_HEX() << "\n";
-    /*Big_Number Num7(7, 1);
+    /*test();
+     * Big_Number Num7(7, 1);
     cout << "Num 7: " << Num7.Big_Num_To_HEX() << "\n";
     Big_Number Num8(5, 1);
     cout << "Num 8: " << Num8.Big_Num_To_HEX() << "\n";
