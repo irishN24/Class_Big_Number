@@ -151,3 +151,113 @@ Big_Number& operator %=(const Base &a) {
     coef[0] = (Base)r;
     return *this;
 }
+// Operator /= with Big_Number
+Big_Number& operator /=(const Big_Number &v) {
+    *this = *this / v;  // Use existing division operator
+    return *this;
+}
+
+// Fixed Big_Number division operator
+Big_Number operator /(const Big_Number &v) {
+    // Check for division by zero
+    if (v.len == 1 && v.coef[0] == 0) {
+        throw invalid_argument("Division by zero!");
+    }
+    
+    // If dividend < divisor, result is 0
+    if (*this < v) {
+        Big_Number res0(1);
+        res0.coef[0] = 0;
+        return res0;
+    }
+    
+    // If divisor is single digit, use simpler division
+    if (v.len == 1) {
+        return *this / v.coef[0];
+    }
+    
+    // Multi-precision division using long division algorithm
+    Big_Number dividend = *this;
+    Big_Number divisor = v;
+    Big_Number quotient(dividend.len - divisor.len + 1);
+    
+    // Initialize quotient to zero
+    for (int i = 0; i < quotient.maxlen; i++) {
+        quotient.coef[i] = 0;
+    }
+    quotient.len = 1;
+    
+    // Perform long division
+    for (int i = dividend.len - 1; i >= 0; i--) {
+        // Shift quotient left by one position
+        quotient <<= 1;
+        
+        // Create current dividend (divisor.len + 1 digits)
+        Big_Number current_dividend(divisor.len + 1);
+        int start_pos = (i >= divisor.len) ? i - divisor.len + 1 : 0;
+        int current_len = i - start_pos + 1;
+        
+        for (int j = 0; j < current_len; j++) {
+            current_dividend.coef[j] = dividend.coef[start_pos + j];
+        }
+        current_dividend.len = current_len;
+        
+        // Remove leading zeros
+        while (current_dividend.len > 1 && current_dividend.coef[current_dividend.len - 1] == 0) {
+            current_dividend.len--;
+        }
+        
+        // Check if current_dividend >= divisor
+        if (current_dividend >= divisor) {
+            quotient.coef[0] = 1;  // Set lowest bit
+            
+            // Subtract divisor from current part of dividend
+            Big_Number temp_result = current_dividend - divisor;
+            for (int j = 0; j < temp_result.len; j++) {
+                dividend.coef[start_pos + j] = temp_result.coef[j];
+            }
+            // Clear higher digits if necessary
+            for (int j = temp_result.len; j < current_len; j++) {
+                dividend.coef[start_pos + j] = 0;
+            }
+        }
+    }
+    
+    // Remove leading zeros from quotient
+    while (quotient.len > 1 && quotient.coef[quotient.len - 1] == 0) {
+        quotient.len--;
+    }
+    
+    return quotient;
+}
+
+// Operator % with Big_Number (modulo)
+Big_Number operator %(const Big_Number &v) {
+    // Check for division by zero
+    if (v.len == 1 && v.coef[0] == 0) {
+        throw invalid_argument("Division by zero in modulo operation!");
+    }
+    
+    // If dividend < divisor, remainder is dividend itself
+    if (*this < v) {
+        return *this;
+    }
+    
+    // If divisor is single digit, use simpler modulo
+    if (v.len == 1) {
+        return *this % v.coef[0];
+    }
+    
+    // Use division to calculate remainder: a % b = a - (a / b) * b
+    Big_Number quotient = *this / v;
+    Big_Number product = quotient * v;
+    Big_Number remainder = *this - product;
+    
+    return remainder;
+}
+
+// Operator %= with Big_Number
+Big_Number& operator %=(const Big_Number &v) {
+    *this = *this % v;  // Use existing modulo operator
+    return *this;
+}
