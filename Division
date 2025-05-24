@@ -1,156 +1,3 @@
-// Fixed Big_Number division operator with key corrections:
-
-Big_Number operator /(const Big_Number &v) {
-    // Check for division by zero
-    if (v.len == 1 && v.coef[0] == 0) {
-        throw invalid_argument("Division by zero!");
-    }
-    
-    // If dividend < divisor, result is 0
-    if (*this < v) {
-        Big_Number res0(1);
-        return res0;
-    }
-    
-    // If divisor is single digit, use simpler division
-    if (v.len == 1) {
-        return *this / v.coef[0];
-    }
-    
-    // Multi-precision division using Knuth's Algorithm D
-    D_Base b = (D_Base)1 << BASE_SIZE;  // Base
-    
-    // Step D1: Normalize - find scaling factor d
-    D_Base d = b / ((D_Base)v.coef[v.len - 1] + 1);
-    
-    // Create normalized copies
-    Big_Number u1 = *this;
-    u1 *= (Base)d;  // Fixed: cast d to Base for multiplication
-    Big_Number v1 = v;
-    v1 *= (Base)d;  // Fixed: cast d to Base for multiplication
-    
-    // Ensure u1 has extra digit for algorithm
-    if (u1.len == len) {
-        u1.maxlen++;
-        Base* new_u = new Base[u1.maxlen];
-        for (int i = 0; i < u1.len; i++) {
-            new_u[i] = u1.coef[i];
-        }
-        new_u[u1.len] = 0;  // Add leading zero
-        delete[] u1.coef;
-        u1.coef = new_u;
-        u1.len++;
-    }
-    
-    int m = u1.len - v1.len;  // Length difference
-    Big_Number res(m + 1);
-    
-    // Step D3: Calculate each quotient digit
-    for (int j = m; j >= 0; j--) {
-        // Step D3: Calculate trial quotient
-        D_Base q_hat;
-        D_Base r_hat;
-        
-        // Fixed: Proper calculation of trial quotient
-        D_Base temp = ((D_Base)u1.coef[j + v1.len] << BASE_SIZE) + (D_Base)u1.coef[j + v1.len - 1];
-        q_hat = temp / (D_Base)v1.coef[v1.len - 1];
-        r_hat = temp % (D_Base)v1.coef[v1.len - 1];
-        
-        // Step D3: Test and adjust q_hat
-        while (q_hat >= b || 
-               (v1.len >= 2 && q_hat * (D_Base)v1.coef[v1.len - 2] > 
-                (r_hat << BASE_SIZE) + (D_Base)u1.coef[j + v1.len - 2])) {
-            q_hat--;
-            r_hat += (D_Base)v1.coef[v1.len - 1];
-            if (r_hat >= b) break;
-        }
-        
-        // Step D4: Multiply and subtract
-        Base k = 0;
-        bool borrow = false;
-        
-        // Subtract q_hat * v1 from appropriate digits of u1
-        for (int i = 0; i < v1.len; i++) {
-            D_Base prod = q_hat * (D_Base)v1.coef[i] + (D_Base)k;
-            Base prod_low = (Base)prod;
-            k = (Base)(prod >> BASE_SIZE);
-            
-            // Perform subtraction with borrow
-            if (u1.coef[j + i] >= prod_low) {
-                u1.coef[j + i] -= prod_low;
-            } else {
-                u1.coef[j + i] = u1.coef[j + i] + ((D_Base)1 << BASE_SIZE) - prod_low;
-                borrow = true;
-            }
-        }
-        
-        // Handle final borrow from high digit
-        if (u1.coef[j + v1.len] >= k) {
-            u1.coef[j + v1.len] -= k;
-        } else {
-            borrow = true;
-        }
-        
-        // Step D5: Test remainder - if negative, add back
-        if (borrow) {
-            q_hat--;
-            // Add v1 back to u1
-            Base carry = 0;
-            for (int i = 0; i < v1.len; i++) {
-                D_Base sum = (D_Base)u1.coef[j + i] + (D_Base)v1.coef[i] + (D_Base)carry;
-                u1.coef[j + i] = (Base)sum;
-                carry = (Base)(sum >> BASE_SIZE);
-            }
-            u1.coef[j + v1.len] += carry;
-        }
-        
-        res.coef[j] = (Base)q_hat;
-    }
-    
-    // Step D8: Unnormalize remainder (not needed for quotient)
-    res.len = m + 1;
-    while (res.len > 1 && res.coef[res.len - 1] == 0) {
-        res.len--;
-    }
-    
-    return res;
-}
-
-// Additional fixes for related operators:
-
-// Fixed modulo operator (% with Base)
-Big_Number operator %(const Base& a) {
-    if (a == 0) {
-        throw invalid_argument("Division by zero in modulo operation!");
-    }
-    D_Base r = 0;
-    // Fixed: iterate from high to low digits
-    for (int i = len - 1; i >= 0; i--) {
-        D_Base tmp = ((D_Base)r << BASE_SIZE) + (D_Base)coef[i];
-        r = tmp % (D_Base)a;
-    }
-    Big_Number res(1);
-    res.coef[0] = (Base)r;
-    return res;
-}
-
-// Fixed %= operator
-Big_Number& operator %=(const Base &a) {
-    if (a == 0) {
-        throw invalid_argument("Division by zero in modulo operation!");
-    }
-    D_Base r = 0;
-    for (int i = len - 1; i >= 0; i--) {  // Fixed: correct iteration order
-        D_Base tmp = ((D_Base)r << BASE_SIZE) + (D_Base)coef[i];
-        r = tmp % (D_Base)a;
-    }
-    delete[] coef;
-    coef = new Base[1];  // Fixed: use array allocation, not Base(1)
-    len = 1;
-    maxlen = 1;
-    coef[0] = (Base)r;
-    return *this;
-}
 // Operator /= with Big_Number
 Big_Number& operator /=(const Big_Number &v) {
     *this = *this / v;  // Use existing division operator
@@ -179,47 +26,33 @@ Big_Number operator /(const Big_Number &v) {
     // Multi-precision division using long division algorithm
     Big_Number dividend = *this;
     Big_Number divisor = v;
-    Big_Number quotient(dividend.len - divisor.len + 1);
+    Big_Number quotient(dividend.len + 1);
+    Big_Number remainder(1);
     
-    // Initialize quotient to zero
+    // Initialize quotient and remainder to zero
     for (int i = 0; i < quotient.maxlen; i++) {
         quotient.coef[i] = 0;
     }
     quotient.len = 1;
+    remainder.coef[0] = 0;
     
-    // Perform long division
+    // Perform long division from most significant digit
     for (int i = dividend.len - 1; i >= 0; i--) {
-        // Shift quotient left by one position
-        quotient <<= 1;
+        // Shift remainder left by one base position and add current digit
+        remainder *= ((D_Base)1 << BASE_SIZE);
+        remainder += Big_Number(dividend.coef[i]);
         
-        // Create current dividend (divisor.len + 1 digits)
-        Big_Number current_dividend(divisor.len + 1);
-        int start_pos = (i >= divisor.len) ? i - divisor.len + 1 : 0;
-        int current_len = i - start_pos + 1;
-        
-        for (int j = 0; j < current_len; j++) {
-            current_dividend.coef[j] = dividend.coef[start_pos + j];
-        }
-        current_dividend.len = current_len;
-        
-        // Remove leading zeros
-        while (current_dividend.len > 1 && current_dividend.coef[current_dividend.len - 1] == 0) {
-            current_dividend.len--;
+        // Find how many times divisor fits into current remainder
+        Base digit = 0;
+        while (remainder >= divisor) {
+            remainder -= divisor;
+            digit++;
         }
         
-        // Check if current_dividend >= divisor
-        if (current_dividend >= divisor) {
-            quotient.coef[0] = 1;  // Set lowest bit
-            
-            // Subtract divisor from current part of dividend
-            Big_Number temp_result = current_dividend - divisor;
-            for (int j = 0; j < temp_result.len; j++) {
-                dividend.coef[start_pos + j] = temp_result.coef[j];
-            }
-            // Clear higher digits if necessary
-            for (int j = temp_result.len; j < current_len; j++) {
-                dividend.coef[start_pos + j] = 0;
-            }
+        // Store digit in quotient
+        quotient.coef[i] = digit;
+        if (digit > 0 && quotient.len <= i) {
+            quotient.len = i + 1;
         }
     }
     
