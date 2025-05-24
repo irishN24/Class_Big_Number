@@ -1,385 +1,346 @@
-Создадим для начала класс:
+#include <iostream>
+#include <cmath>
+#include <stdexcept>
+
+using namespace std;
+
+typedef unsigned long ulong;
+typedef unsigned short ushort;
+typedef double real;
+
+#define BASE 10000
+#define BASE_DIG 4
 
 class BigInt {
-    public:
-    // к этим членам можно закрыть доступ
-    ulong Size, SizeMax;    // Size – текущая длина
-    // SizeMax – максимальная длина
-    short *Coef;    // Массив коэффициентов
+public:
+    ulong Size, SizeMax;
+    short* Coef;
 
-    // в этом случае здесь также должны быть описаны дружественные функции
-    // операций над большими числами, которые будут разобраны ниже. 
-    BigInt ();
-    BigInt (ulong);
-    BigInt (const BigInt&); 
-    virtual ~BigInt ();
-    void zero ();   // Обнулить число
-    void update ();
-    BigInt& operator = (const BigInt&);
-    operator long ();   // Оператор преобразования BigInt к типу long
+    BigInt();
+    BigInt(ulong);
+    BigInt(const BigInt&);
+    virtual ~BigInt();
+    void zero();
+    void update();
+    BigInt& operator=(const BigInt&);
+    operator long();
+    
+    friend ostream& operator<<(ostream& os, const BigInt& A);
+    friend void Add(const BigInt& A, const BigInt& B, BigInt& C);
+    friend int Sub(const BigInt& A, const BigInt& B, BigInt& C);
+    friend void SMul(const BigInt& A, const short B, BigInt& C);
+    friend void Mul(const BigInt& A, const BigInt& B, BigInt& C);
+    friend void SDiv(const BigInt& A, const short B, BigInt& Q, short& R);
+    friend void Div(const BigInt& A, BigInt& B, BigInt& Q, BigInt& R);
 };
-Создадим конструкторы и деструктор объектов класса:
 
-BigInt::BigInt () {
-    SizeMax = Size = 0; // Объявление вида BigInt A;
-    Coef = NULL;    // Создается полностью пустое число
+BigInt::BigInt() {
+    SizeMax = Size = 0;
+    Coef = NULL;
 }
 
-BigInt::BigInt (ulong MaxLen) {
-    Coef = new short [MaxLen]; //Объявление вида BigInt A(10); 
-    SizeMax = MaxLen;   // Выделяет память под MaxLen цифр Size = 0;
+BigInt::BigInt(ulong MaxLen) {
+    Coef = new short[MaxLen];
+    SizeMax = MaxLen;
+    Size = 0;
 }
 
-BigInt::BigInt (const BigInt &A) { // Конструктор копирования
-    SizeMax = A.SizeMax;    // Создает B, равное A 
+BigInt::BigInt(const BigInt& A) {
+    SizeMax = A.SizeMax;
     Size = A.Size;
-    Coef = new short [SizeMax];
-    for (ulong i=0; i<SizeMax; i++) Coef [i] = A.Coef [i];
+    Coef = new short[SizeMax];
+    for (ulong i = 0; i < SizeMax; i++) Coef[i] = A.Coef[i];
 }
 
-BigInt::~BigInt () {    // Деструктор (Освобождает память) 
-    delete Coef;
+BigInt::~BigInt() {
+    delete[] Coef;
 }
-Создадим операцию обнуления числа:
 
-void BigInt::zero () {  // A.zero () – обнулить число
-    for (ulong i=0; i<SizeMax; i++) Coef [i] = 0; Size = 1;
+void BigInt::zero() {
+    for (ulong i = 0; i < SizeMax; i++) Coef[i] = 0;
+    Size = 1;
 }
-Создадим оператор вычисления значения числа в «обычном виде» (полезен при отладке, когда BASE=10 и числа небольшие):
 
-BigInt::operator long () {
-    long tmp = 0;   // при вычислениях может произойти переполнение
-    for (ushort i=0; i<Size; i++) tmp += Coef [i] * (long) pow ( BASE, (real) i ); return tmp;
+BigInt::operator long() {
+    long tmp = 0;
+    for (ushort i = 0; i < Size; i++) 
+        tmp += Coef[i] * (long)pow(BASE, (real)i);
+    return tmp;
 }
-Создадим оператор присваивания:
 
-inline BigInt& BigInt::operator = (const BigInt &A) { const short *a = A.Coef;
-    if (this == &A) return *this;   // Если присваивание вида A=A, выйти
-    if ( SizeMax < A.Size ) {   // Если размера не хватает,
-        // переинициализация
-        if (Coef) delete Coef;
-        Coef = new short [A.Size]; SizeMax = Size = A.Size;
-    } else Size = A.Size;
+BigInt& BigInt::operator=(const BigInt& A) {
+    const short* a = A.Coef;
+    if (this == &A) return *this;
+    if (SizeMax < A.Size) {
+        if (Coef) delete[] Coef;
+        Coef = new short[A.Size];
+        SizeMax = A.Size;
+    }
+    Size = A.Size;
 
-    for (ulong l=0; l<Size; l++) Coef [l] = a [l];
+    for (ulong l = 0; l < Size; l++) Coef[l] = a[l];
     return *this;
 }
-Учтены, в том числе, особые случаи применения оператора:
 
-Случай A = A;
-Случай необходимости выделения дополнительной памяти под коэффициенты, если размеры операндов не совпадают;
-Случай A = B = C (интерпретируется как A = ( B = C ) ).
-Создадим оператор вывода на печать:
-
-#define BASE_DIG 4  // Полагаем, что BASE = 10000
-
-ostream& operator << (ostream& os, const BigInt& A) {   // Перегрузка оператора << long j, Digit=0;
+ostream& operator<<(ostream& os, const BigInt& A) {
+    long j, Digit = 0;
     short Pow, Dec, Coef;
 
-    os << A.Coef[A.Size-1];
-    for (long i=A.Size-2; i>=0; i--) {  // Цикл вывода коэффициентов
-    Pow = BASE/10;
-    Coef = A.Coef[i];
-        for (j=0; j<BASE_DIG; j++) {    // Цикл, выводящий каждый коэффициент
-            Dec = Coef/Pow; Coef -= Dec*Pow;
-            Pow /= 10;  // Очередная цифра получается делением
-            os << Dec;  // коэффициента на 10j 
+    os << A.Coef[A.Size - 1];
+    for (long i = A.Size - 2; i >= 0; i--) {
+        Pow = BASE / 10;
+        Coef = A.Coef[i];
+        for (j = 0; j < BASE_DIG; j++) {
+            Dec = Coef / Pow;
+            Coef -= Dec * Pow;
+            Pow /= 10;
+            os << Dec;
             Digit++;
-            // Каждые 1000 цифр сопровождаются переходом строки
-            if (Digit%1000==0) os << "\n\n";
-            else if (Digit%50==0) os << "\t: " << Digit << "\n";
+            if (Digit % 1000 == 0) os << "\n\n";
+            else if (Digit % 50 == 0) os << "\t: " << Digit << "\n";
         }
     }
     return os;
 }
-Создадим оператор сложения:
 
-// Вычисление C = A+B, работает вызов вида Add (A, B, A).
-// Максимальный размер C должен быть достаточен для хранения суммы
-void Add(const BigInt &A, const BigInt &B, BigInt &C) { ulong i;
-    long temp;  // temp здесь и далее играет роль “временной” цифры,
-    // до выполнения переноса. Возможно, temp > BASE.
+void Add(const BigInt& A, const BigInt& B, BigInt& C) {
+    ulong i;
+    long temp;
+    const short* a = A.Coef, * b = B.Coef;
+    short* c = C.Coef;
+    short carry = 0;
 
-    // Здесь и в следующих примерах
-    // для быстрого доступа к коэффициентам
-    // объявляются временные указатели a, b, c. 
-    const short *a=A.Coef, *b=B.Coef; 
-    short *c=C.Coef;
-
-    carry = 0;  // перенос в следующий разряд
-
-    // Добиваемся B.Size ≤ A.Size. 
-    if ( A.Size < B.Size ) {
-        Add(B,A,C);
+    if (A.Size < B.Size) {
+        Add(B, A, C);
         return;
     }
-    // Теперь B.Size ≤ A.Size. Складываем два числа, i -номер текущей цифры
-    for (i=0; i<B.Size; i++) {
+
+    for (i = 0; i < B.Size; i++) {
         temp = a[i] + b[i] + carry;
-        if (temp >= BASE) { 
-            // Переполнение. Перенести единицу. 
-            c[i] = temp - BASE; carry = 1; }
-
-        else {
-            c[i] = temp;    carry = 0;
-        }
-    } 
-
-    // Меньшее число кончилось
-    for (; i < A.Size; i++) { 
-        temp = a[i] + carry; 
         if (temp >= BASE) {
-            c[i] = temp - BASE;     carry = 1;  } 
-        else { 
-            c[i] = temp;    
-            carry = 0;  }
+            c[i] = temp - BASE;
+            carry = 1;
+        }
+        else {
+            c[i] = temp;
+            carry = 0;
+        }
     }
 
-    // Если остался перенос – добавить его в дополнительный разряд
-    if (carry) { 
-        c[i] = carry;   
-        C.Size = A.Size+1; } 
+    for (; i < A.Size; i++) {
+        temp = a[i] + carry;
+        if (temp >= BASE) {
+            c[i] = temp - BASE;
+            carry = 1;
+        }
+        else {
+            c[i] = temp;
+            carry = 0;
+        }
+    }
+
+    if (carry) {
+        c[i] = carry;
+        C.Size = A.Size + 1;
+    }
     else C.Size = A.Size;
 }
-Создадим оператор вычитания:
 
-// C = A-B, должно быть A.Size >= B.Size. Работает вызов Sub(A, B, A).
-// Если длины равны, но A<B: возвращается -1, результат будет дополнением. 
-int Sub (const BigInt& A, const BigInt& B, BigInt& C) {
-    const short *a=A.Coef, *b=B.Coef; short *c=C.Coef;
+int Sub(const BigInt& A, const BigInt& B, BigInt& C) {
+    const short* a = A.Coef, * b = B.Coef;
+    short* c = C.Coef;
     ulong i;
-    long temp, carry=0;
-    if ( A.Size < B.Size ) error ("BigSub: size error");
+    long temp, carry = 0;
+    if (A.Size < B.Size) throw runtime_error("BigSub: size error");
 
-    for (i=0; i<B.Size; i++) {
-        temp = a[i] - b[i] + carry; 
+    for (i = 0; i < B.Size; i++) {
+        temp = a[i] - b[i] + carry;
         if (temp < 0) {
-            c[i] = temp + BASE; carry = -1; } 
-        else { c[i] = temp; carry = 0; }
-    }
-    for (; i<A.Size; i++) { 
-        temp = a[i] + carry; 
-        if (temp < 0) {
-            c[i] = temp + BASE; carry = -1;  
+            c[i] = temp + BASE;
+            carry = -1;
         }
         else {
-            c[i] = temp; carry = 0;
+            c[i] = temp;
+            carry = 0;
         }
-    }    
+    }
+    for (; i < A.Size; i++) {
+        temp = a[i] + carry;
+        if (temp < 0) {
+            c[i] = temp + BASE;
+            carry = -1;
+        }
+        else {
+            c[i] = temp;
+            carry = 0;
+        }
+    }
 
-    // Размер результата может быть гораздо меньше, чем у исходного числа
-    // Устанавливаем его по первому положительному разряду
-    i = A.Size-1;
-    while ( (i>0) && (c[i]==0) ) i--; 
-    C.Size = i+1;
+    i = A.Size - 1;
+    while ((i > 0) && (c[i] == 0)) i--;
+    C.Size = i + 1;
     return carry;
 }
-Создадим упрощенный оператор умножения:
 
-// C = A * B, работает вызов Smul (A, B, A).
-void SMul (const BigInt &A, const short B, BigInt &C) { 
-    ulong i, temp;
-    const short *a=A.Coef; 
-    short *c=C.Coef, carry=0; 
-    for (i=0; i<A.Size;i++) {
-        temp = a[i]*B + carry; carry = temp / BASE;
-        c[i] = temp - carry*BASE;   // с[i] = temp % BASE ( Так очень медленно ! )
+void SMul(const BigInt& A, const short B, BigInt& C) {
+    ulong i;
+    long temp;
+    const short* a = A.Coef;
+    short* c = C.Coef, carry = 0;
+    for (i = 0; i < A.Size; i++) {
+        temp = a[i] * B + carry;
+        carry = temp / BASE;
+        c[i] = temp - carry * BASE;
     }
     if (carry) {
-        // Число удлинилось за счет переноса нового разряда
-        c[i] = carry; C.Size = A.Size+1;
+        c[i] = carry;
+        C.Size = A.Size + 1;
     }
     else C.Size = A.Size;
 }
-Создадим оператор умножения общего вида:
 
-// C = A * B, работает вызов Mul (A, B, A)
-void Mul (const BigInt &A, const BigInt &B, BigInt &C) { 
+void Mul(const BigInt& A, const BigInt& B, BigInt& C) {
     ulong i, j;
-    const short *a=A.Coef, *b=B.Coef; 
-    short *c=C.Coef;
+    const short* a = A.Coef, * b = B.Coef;
+    short* c = C.Coef;
     ulong temp, carry;
 
-    // Обнулить необходимую для работы часть C 
-    for ( i=0; i <= A.Size + B.Size; i++ ) c[i]=0;
-    // Выполнение основного цикла умножения
-    for ( i = 0; i < A.Size; i++) { 
+    for (i = 0; i <= A.Size + B.Size; i++) c[i] = 0;
+    for (i = 0; i < A.Size; i++) {
         carry = 0;
-        // вычисление временного результата с одновременным прибавлением
-        // его к c[i+j] (делаются переносы) 
         for (j = 0; j < B.Size; j++) {
-            temp = a[i] * b[j] + c[i+j] + carry; 
+            temp = a[i] * b[j] + c[i + j] + carry;
             carry = temp / BASE;
-            c[i+j] = temp - carry*BASE;
-            }
-            c[i+j] = carry;
+            c[i + j] = temp - carry * BASE;
         }
-        // Установить размер по первой ненулевой цифре
-        i = A.Size + B.Size - 1; 
-        if ( c[i] == 0 ) i--; 
-        C.Size = i+1;
+        c[i + j] = carry;
+    }
+    i = A.Size + B.Size - 1;
+    if (c[i] == 0) i--;
+    C.Size = i + 1;
 }
-Создадим упрощенный оператор деления:
 
-// Частное Q = A/B. Остаток R = A%B. A, Q – длинные целые. B, R – короткие целые. 
-void SDiv(const BigInt &A, const short B, BigInt &Q, short &R) {
-    short r=0, *q=Q.Coef; 
-    const short *a=A.Coef; 
+void SDiv(const BigInt& A, const short B, BigInt& Q, short& R) {
+    short r = 0, * q = Q.Coef;
+    const short* a = A.Coef;
     long i, temp;
 
-    for ( i=A.Size-1; i>=0; i--) {  
-        // идти по A, начиная от старшего разряда
-        temp = r*BASE + a[i];   // r – остаток от предыдущего деления
-                                // вначале r=0, temp – текущая цифра A с
-                                // учетом перенесенного остатка
-
-        q[i] = temp / B;    // i-я цифра частного
-        r = temp - q[i]*B;  // остаток примет участие в вычислении
-                            // следующей цифры частного
-        }
+    for (i = A.Size - 1; i >= 0; i--) {
+        temp = r * BASE + a[i];
+        q[i] = temp / B;
+        r = temp - q[i] * B;
+    }
     R = r;
-    // Размер частного меньше, либо равен размера делимого
-    i = A.Size-1;
-    while ( (i>0) && (q[i]==0) ) i--; 
-    Q.Size = i+1;
+    i = A.Size - 1;
+    while ((i > 0) && (q[i] == 0)) i--;
+    Q.Size = i + 1;
 }
-И финально, применив теорему Дональда Кнута реализуем общий оператор деления:
 
-// Частное Q = A/B. Остаток R = A%B.
-// Все операнды – длинные целые.
-
-void Div (const BigInt &A, BigInt &B, BigInt &Q, BigInt &R) {
-
-    // Вырожденный случай 1. Делитель больше делимого. 
-    if ( A.Size < B.Size ) {
+void Div(const BigInt& A, BigInt& B, BigInt& Q, BigInt& R) {
+    if (A.Size < B.Size) {
         Q.zero();
-        R=A;
+        R = A;
         return;
     }
 
-    // Вырожденный случай 2. Делитель – короткое целое. 
-    if ( B.Size == 1) {
-        SDiv ( A, B.Coef[0], Q, R.Coef[0]);
-        R.Size = 1; 
+    if (B.Size == 1) {
+        SDiv(A, B.Coef[0], Q, R.Coef[0]);
+        R.Size = 1;
         return;
     }
-    // Создать временный массив U, равный A
-    // Максимальный размер U на цифру больше A, с учетом
-    // возможного удлинения A при нормализации
-    BigInt U(A.Size+1); 
-    U = A; 
-    U.Coef[A.Size]=0;
-    // Указатели для быстрого доступа
-    short *b=B.Coef, *u=U.Coef, *q=Q.Coef;
 
-    long n=B.Size, m=U.Size-B.Size; 
+    BigInt U(A.Size + 1);
+    U = A;
+    U.Coef[A.Size] = 0;
+    short* b = B.Coef, * u = U.Coef, * q = Q.Coef;
+
+    long n = B.Size, m = U.Size - B.Size;
     long uJ, vJ, i;
     long temp1, temp2, temp;
-    short scale;    // коэффициент нормализации
-    short qProbe, r;    // догадка для частного и соответствующий остаток
-    short borrow, carry;    // переносы
+    short scale;
+    short qProbe, r;
+    short borrow, carry;
 
-    // Нормализация
-    scale = BASE / ( b[n-1] + 1 ); 
+    scale = BASE / (b[n - 1] + 1);
     if (scale > 1) {
-        SMul (U, scale, U);
-        SMul (B, scale, B);
+        SMul(U, scale, U);
+        SMul(B, scale, B);
     }
-    // Главный цикл шагов деления.
-    // Каждая итерация дает очередную цифру частного.
-    // vJ - текущий сдвиг B относительно U, используемый при вычитании,
-    // по совместительству - индекс очередной цифры частного.
-    // uJ – индекс текущей цифры U
 
-    for (vJ = m, uJ=n+vJ; vJ>=0; --vJ, --uJ) {
-        qProbe = (u[uJ]*BASE + u[uJ-1]) / b[n-1];
-        r = (u[uJ]*BASE + u[uJ-1]) % b[n-1];
+    for (vJ = m, uJ = n + vJ; vJ >= 0; --vJ, --uJ) {
+        qProbe = (u[uJ] * BASE + u[uJ - 1]) / b[n - 1];
+        r = (u[uJ] * BASE + u[uJ - 1]) % b[n - 1];
 
-        // Пока не будут выполнены необходимые условия, уменьшать частное. 
-        while ( r < BASE) {
-            temp2 = b[n-2]*qProbe; temp1 = r*BASE + u[uJ-2];
-            if ( (temp2 > temp1) || (qProbe==BASE) ) {
-                // условия не выполнены, уменьшить qProbe
-                // и досчитать новый остаток
+        while (r < BASE) {
+            temp2 = b[n - 2] * qProbe;
+            temp1 = r * BASE + u[uJ - 2];
+            if ((temp2 > temp1) || (qProbe == BASE)) {
                 --qProbe;
-                r += b[n-1];
-            } else break;
+                r += b[n - 1];
+            }
+            else break;
         }
-        // Теперь qProbe - правильное частное или на единицу больше q
-        // Вычесть делитель B, умноженный на qProbe из делимого U,
-        // начиная с позиции vJ+i 
-        carry = 0; 
-        borrow = 0; 
-        short *uShift = u + vJ;
-        // цикл по цифрам B 
-        for (i=0; i<n;i++) {
-            // получить в temp цифру произведения B*qProbe 
-            temp1 = b[i]*qProbe + carry;
-            carry = temp1 / BASE; temp1 -= carry*BASE;
-            // Сразу же вычесть из U
-            temp2 = uShift[i] - temp1 + borrow; 
+
+        carry = 0;
+        borrow = 0;
+        short* uShift = u + vJ;
+        for (i = 0; i < n; i++) {
+            temp1 = b[i] * qProbe + carry;
+            carry = temp1 / BASE;
+            temp1 -= carry * BASE;
+            temp2 = uShift[i] - temp1 + borrow;
             if (temp2 < 0) {
-                uShift[i] = temp2 + BASE; 
-                borrow = -1;             
-            } else {
-                uShift[i] = temp2; 
+                uShift[i] = temp2 + BASE;
+                borrow = -1;
+            }
+            else {
+                uShift[i] = temp2;
                 borrow = 0;
             }
         }
 
-        // Возможно, умноженое на qProbe число B удлинилось.
-        // Если это так, то после умножения остался
-        // неиспользованный перенос carry. Вычесть и его тоже. 
         temp2 = uShift[i] - carry + borrow;
         if (temp2 < 0) {
-            uShift[i] = temp2 + BASE; 
-            borrow = -1;         
-        } else {
-            uShift[i] = temp2; 
+            uShift[i] = temp2 + BASE;
+            borrow = -1;
+        }
+        else {
+            uShift[i] = temp2;
             borrow = 0;
         }
 
-        // Прошло ли вычитание нормально ?
-        if (borrow == 0) {  
-            // Да, частное угадано правильно
+        if (borrow == 0) {
             q[vJ] = qProbe;
-        } 
-        else {  
-            // Нет, последний перенос при вычитании borrow = -1,
-            // значит, qProbe на единицу больше истинного частного
-            q[vJ] = qProbe-1;
-            // добавить одно, вычтенное сверх необходимого B к U carry = 0;
-            for (i=0; i<n; i++) {
-                temp = uShift[i] + b[i] + carry; 
+        }
+        else {
+            q[vJ] = qProbe - 1;
+            carry = 0;
+            for (i = 0; i < n; i++) {
+                temp = uShift[i] + b[i] + carry;
                 if (temp >= BASE) {
-                    uShift[i] = temp - BASE; 
+                    uShift[i] = temp - BASE;
                     carry = 1;
-
-                } else {
-                    uShift[i] = temp; 
+                }
+                else {
+                    uShift[i] = temp;
                     carry = 0;
                 }
             }
-
             uShift[i] = uShift[i] + carry - BASE;
         }
 
-        // Обновим размер U, который после вычитания мог уменьшиться
-        i = U.Size-1;
-        while ( (i>0) && (u[i]==0) ) i--;
-        U.Size = i+1;
+        i = U.Size - 1;
+        while ((i > 0) && (u[i] == 0)) i--;
+        U.Size = i + 1;
     }
-    // Деление завершено !
 
-    // Размер частного равен m+1, но, возможно, первая цифра - ноль. 
-    while ( (m>0) && (q[m]==0) ) m--;
-    Q.Size = m+1;
+    while ((m > 0) && (q[m] == 0)) m--;
+    Q.Size = m + 1;
 
-    // Если происходило домножение на нормализующий множитель –
-    // разделить на него. То, что осталось от U – остаток. 
     if (scale > 1) {
-        short junk; // почему-то остаток junk всегда будет равен нулю… 
-        SDiv ( B, scale, B, junk);
-        SDiv ( U, scale, R, junk);
-    } else R=U;
+        short junk;
+        SDiv(B, scale, B, junk);
+        SDiv(U, scale, R, junk);
+    }
+    else R = U;
 }
