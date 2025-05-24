@@ -1,0 +1,497 @@
+#include <iostream>
+#include <cstring>
+#include <string>
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
+#include <random>
+#include <chrono>
+#include <stdexcept>
+#include <algorithm>
+
+#define BASE_SIZE (sizeof(Base) * 8) // размер Base в битах
+typedef unsigned char Base;
+typedef unsigned short D_Base;
+using namespace std;
+
+class Big_Number {
+    Base* coef;
+    int len;
+    int maxlen;
+public:
+    // Конструкторы
+    Big_Number(int max = 1, int randomz = 0) : len(1), maxlen(max <= 0 ? 1 : max) {
+        coef = new Base[maxlen];
+        fill(coef, coef + maxlen, 0);
+        
+        if (randomz != 0) {
+            for (int i = 0; i < maxlen; ++i) {
+                coef[i] = rand() % 256; // Для Base = unsigned char
+            }
+            len = maxlen;
+            while (len > 1 && coef[len - 1] == 0) {
+                len--;
+            }
+        }
+    }
+    
+    // Конструктор копирования
+    Big_Number(const Big_Number& B_Num) : len(B_Num.len), maxlen(B_Num.maxlen) {
+        coef = new Base[maxlen];
+        for (int i = 0; i < maxlen; ++i) {
+            coef[i] = B_Num.coef[i];
+        }
+    }
+    
+    // Деструктор
+    ~Big_Number() {
+        delete[] coef;
+    }
+    
+    // Оператор присваивания
+    Big_Number& operator=(const Big_Number& B_Num) {
+        if (this != &B_Num) {
+            delete[] coef;
+            len = B_Num.len;
+            maxlen = B_Num.maxlen;
+            coef = new Base[maxlen];
+            for (int i = 0; i < maxlen; ++i) {
+                coef[i] = B_Num.coef[i];
+            }
+        }
+        return *this;
+    }
+    
+    // Преобразование в HEX строку
+    string Big_Num_To_HEX() const {
+        string result;
+        for (int j = len - 1; j >= 0; j--) {
+            for (int k = BASE_SIZE - 4; k >= 0; k -= 4) {
+                int tmp = (coef[j] >> k) & 0xF;
+                if (tmp >= 0 && tmp <= 9) {
+                    result += (char)(tmp + '0');
+                } else if (tmp >= 10 && tmp <= 15) {
+                    result += (char)(tmp - 10 + 'a');
+                }
+            }
+        }
+        
+        size_t pos = result.find_first_not_of('0');
+        if (pos != string::npos) {
+            result = result.substr(pos);
+        } else {
+            result = "0";
+        }
+        return result;
+    }
+    
+    // Преобразование из HEX строки
+    void HEX_TO_BN(const string& str_16) {
+        if (str_16.empty()) {
+            len = 1;
+            coef[0] = 0;
+            return;
+        }
+        
+        int length = str_16.length();
+        len = (length - 1) / (BASE_SIZE / 4) + 1;
+        
+        if (len > maxlen) {
+            delete[] coef;
+            maxlen = len;
+            coef = new Base[maxlen];
+        }
+        
+        fill(coef, coef + maxlen, 0);
+        
+        int j = 0;
+        int k = 0;
+        for (int i = length - 1; i >= 0; i--) {
+            char c = str_16[i];
+            int tmp = 0;
+            if (c >= '0' && c <= '9') {
+                tmp = c - '0';
+            } else if (c >= 'a' && c <= 'f') {
+                tmp = c - 'a' + 10;
+            } else if (c >= 'A' && c <= 'F') {
+                tmp = c - 'A' + 10;
+            } else {
+                cout << "INCORRECT SYMBOL!!!\n";
+                len = 1;
+                coef[0] = 0;
+                return;
+            }
+            coef[j] |= tmp << k;
+            k += 4;
+            if (k >= BASE_SIZE) {
+                k = 0;
+                j++;
+            }
+        }
+        
+        while (len > 1 && coef[len - 1] == 0) {
+            len--;
+        }
+    }
+    
+    // Операторы сравнения
+    bool operator==(const Big_Number& x) const {
+        if (len != x.len) return false;
+        for (int i = 0; i < len; i++) {
+            if (coef[i] != x.coef[i]) return false;
+        }
+        return true;
+    }
+    
+    bool operator!=(const Big_Number& x) const {
+        return !(*this == x);
+    }
+    
+    bool operator>(const Big_Number& x) const {
+        if (len > x.len) return true;
+        if (len < x.len) return false;
+        for (int i = len - 1; i >= 0; i--) {
+            if (coef[i] > x.coef[i]) return true;
+            if (coef[i] < x.coef[i]) return false;
+        }
+        return false;
+    }
+    
+    bool operator<(const Big_Number& x) const {
+        return x > *this;
+    }
+    
+    bool operator>=(const Big_Number& x) const {
+        return *this > x || *this == x;
+    }
+    
+    bool operator<=(const Big_Number& x) const {
+        return *this < x || *this == x;
+    }
+    
+    // Сложение
+    Big_Number operator+(const Big_Number& v) const {
+        int l = min(len, v.len);
+        Big_Number w(max(len, v.len) + 1);
+        D_Base tmp;
+        int j = 0;
+        int k = 0; // перенос
+        
+        for (; j < l; j++) {
+            tmp = (D_Base)coef[j] + (D_Base)v.coef[j] + (D_Base)k;
+            w.coef[j] = (Base)tmp;
+            k = (Base)(tmp >> BASE_SIZE);
+        }
+        for (; j < len; j++) {
+            tmp = (D_Base)coef[j] + (D_Base)k;
+            w.coef[j] = (Base)tmp;
+            k = (Base)(tmp >> BASE_SIZE);
+        }
+        for (; j < v.len; j++) {
+            tmp = (D_Base)v.coef[j] + (D_Base)k;
+            w.coef[j] = (Base)tmp;
+            k = (Base)(tmp >> BASE_SIZE);
+        }
+        
+        if (k != 0) {
+            w.coef[j] = k;
+            w.len = j + 1;
+        } else {
+            w.len = j;
+        }
+        
+        while (w.len > 1 && w.coef[w.len - 1] == 0) {
+            w.len--;
+        }
+        
+        return w;
+    }
+    
+    // Вычитание
+    Big_Number operator-(const Big_Number& v) const {
+        if (*this < v) {
+            throw invalid_argument("ERROR: U < V!!!");
+        }
+        
+        Big_Number result(len);
+        D_Base tmp;
+        int j = 0;
+        D_Base k = 0; // заём
+        
+        for (; j < v.len; j++) {
+            tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
+            tmp = tmp - v.coef[j] - k;
+            result.coef[j] = (Base)tmp;
+            k = (tmp >> BASE_SIZE) ? 0 : 1;
+        }
+        for (; j < len; j++) {
+            tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
+            tmp -= k;
+            result.coef[j] = (Base)tmp;
+            k = (tmp >> BASE_SIZE) ? 0 : 1;
+        }
+        
+        result.len = len;
+        while (result.len > 1 && result.coef[result.len - 1] == 0) {
+            result.len--;
+        }
+        
+        return result;
+    }
+    
+    // Умножение на Base
+    Big_Number operator*(const Base& a) const {
+        Big_Number w(len + 1);
+        int j = 0;
+        Base k = 0;
+        D_Base tmp;
+        
+        for (; j < len; j++) {
+            tmp = (D_Base)coef[j] * (D_Base)a + (D_Base)k;
+            w.coef[j] = (Base)tmp;
+            k = (Base)(tmp >> BASE_SIZE);
+        }
+        
+        if (k != 0) {
+            w.coef[j] = k;
+            w.len = j + 1;
+        } else {
+            w.len = j;
+        }
+        
+        while (w.len > 1 && w.coef[w.len - 1] == 0) {
+            w.len--;
+        }
+        
+        return w;
+    }
+    
+    // Умножение на Big_Number
+    Big_Number operator*(const Big_Number& v) const {
+        Big_Number w(len + v.len);
+        
+        for (int j = 0; j < v.len; j++) {
+            if (v.coef[j] != 0) {
+                Base k = 0;
+                for (int i = 0; i < len; i++) {
+                    D_Base tmp = (D_Base)coef[i] * (D_Base)v.coef[j] + (D_Base)k + (D_Base)w.coef[i + j];
+                    w.coef[i + j] = (Base)tmp;
+                    k = (Base)(tmp >> BASE_SIZE);
+                }
+                w.coef[len + j] = k;
+            }
+        }
+        
+        w.len = len + v.len;
+        while (w.len > 1 && w.coef[w.len - 1] == 0) {
+            w.len--;
+        }
+        
+        return w;
+    }
+    
+    // Деление на Base
+    Big_Number operator/(const Base& a) const {
+        if (a == 0) {
+            throw invalid_argument("DIVISION BY ZERO!!!!");
+        }
+        
+        Big_Number q(len);
+        D_Base r = 0;
+        
+        for (int j = len - 1; j >= 0; j--) {
+            D_Base tmp = ((D_Base)r << BASE_SIZE) + (D_Base)coef[j];
+            q.coef[j] = (Base)(tmp / (D_Base)a);
+            r = (Base)(tmp % (D_Base)a);
+        }
+        
+        q.len = len;
+        while (q.len > 1 && q.coef[q.len - 1] == 0) {
+            q.len--;
+        }
+        
+        return q;
+    }
+    
+    // Остаток от деления на Base
+    Big_Number operator%(const Base& a) const {
+        if (a == 0) {
+            throw invalid_argument("DIVISION BY ZERO!!!!");
+        }
+        
+        D_Base r = 0;
+        for (int i = len - 1; i >= 0; i--) {
+            D_Base tmp = ((D_Base)r << BASE_SIZE) + (D_Base)coef[i];
+            r = (Base)(tmp % (D_Base)a);
+        }
+        
+        Big_Number res(1);
+        res.coef[0] = (Base)r;
+        return res;
+    }
+    
+    // Упрощенное деление на Big_Number (только для случая, когда делитель меньше)
+    Big_Number operator/(const Big_Number& v) const {
+        if (v.len == 1 && v.coef[0] == 0) {
+            throw invalid_argument("Division by zero!");
+        }
+        
+        if (*this < v) {
+            return Big_Number(1); // возвращаем 0
+        }
+        
+        if (v.len == 1) {
+            return *this / v.coef[0];
+        }
+        
+        // Упрощенный алгоритм деления (не полная реализация)
+        // Для полной реализации нужен алгоритм Кнута
+        Big_Number result(1);
+        return result;
+    }
+    
+    // Операторы присваивания с операцией
+    Big_Number& operator+=(const Big_Number& v) {
+        *this = *this + v;
+        return *this;
+    }
+    
+    Big_Number& operator-=(const Big_Number& v) {
+        *this = *this - v;
+        return *this;
+    }
+    
+    Big_Number& operator*=(const Base& a) {
+        *this = *this * a;
+        return *this;
+    }
+    
+    Big_Number& operator*=(const Big_Number& v) {
+        *this = *this * v;
+        return *this;
+    }
+    
+    Big_Number& operator/=(const Base& a) {
+        *this = *this / a;
+        return *this;
+    }
+    
+    Big_Number& operator%=(const Base& a) {
+        *this = *this % a;
+        return *this;
+    }
+    
+    // Операторы ввода-вывода
+    friend ostream& operator<<(ostream& os, const Big_Number& bn) {
+        os << bn.Big_Num_To_HEX();
+        return os;
+    }
+};
+
+// Функция для тестирования
+void runTests() {
+    cout << "=== ТЕСТИРОВАНИЕ КЛАССА Big_Number ===\n\n";
+    
+    // Тест конструкторов
+    cout << "1. Тест конструкторов:\n";
+    Big_Number num1; // по умолчанию
+    Big_Number num2(5); // с размером
+    Big_Number num3(3, 1); // случайные числа
+    cout << "num1 (по умолчанию): " << num1 << "\n";
+    cout << "num2 (размер 5): " << num2 << "\n";
+    cout << "num3 (случайный, размер 3): " << num3 << "\n\n";
+    
+    // Тест HEX преобразований
+    cout << "2. Тест HEX преобразований:\n";
+    Big_Number hexTest;
+    string hexStr = "1a2b3c";
+    hexTest.HEX_TO_BN(hexStr);
+    cout << "Строка: " << hexStr << " -> Big_Number: " << hexTest << "\n\n";
+    
+    // Создаем тестовые числа
+    Big_Number a, b;
+    a.HEX_TO_BN(string("ff"));     // 255
+    b.HEX_TO_BN(string("aa"));     // 170
+    
+    cout << "3. Тестовые числа:\n";
+    cout << "a = " << a << " (255 в десятичном)\n";
+    cout << "b = " << b << " (170 в десятичном)\n\n";
+    
+    // Тест операторов сравнения
+    cout << "4. Тест операторов сравнения:\n";
+    cout << "a == b: " << (a == b ? "true" : "false") << "\n";
+    cout << "a != b: " << (a != b ? "true" : "false") << "\n";
+    cout << "a > b: " << (a > b ? "true" : "false") << "\n";
+    cout << "a < b: " << (a < b ? "true" : "false") << "\n";
+    cout << "a >= b: " << (a >= b ? "true" : "false") << "\n";
+    cout << "a <= b: " << (a <= b ? "true" : "false") << "\n\n";
+    
+    // Тест арифметических операций
+    cout << "5. Тест арифметических операций:\n";
+    Big_Number sum = a + b;
+    cout << "a + b = " << sum << "\n";
+    
+    Big_Number diff = a - b;
+    cout << "a - b = " << diff << "\n";
+    
+    Big_Number prod = a * (Base)2;
+    cout << "a * 2 = " << prod << "\n";
+    
+    Big_Number quot = a / (Base)2;
+    cout << "a / 2 = " << quot << "\n";
+    
+    Big_Number rem = a % (Base)3;
+    cout << "a % 3 = " << rem << "\n\n";
+    
+    // Тест операторов присваивания с операцией
+    cout << "6. Тест операторов присваивания:\n";
+    Big_Number c = a;
+    cout << "c = a = " << c << "\n";
+    
+    c += b;
+    cout << "c += b = " << c << "\n";
+    
+    c -= b;
+    cout << "c -= b = " << c << "\n";
+    
+    c *= (Base)2;
+    cout << "c *= 2 = " << c << "\n";
+    
+    c /= (Base)2;
+    cout << "c /= 2 = " << c << "\n\n";
+    
+    // Тест больших чисел
+    cout << "7. Тест умножения больших чисел:\n";
+    Big_Number big1, big2;
+    big1.HEX_TO_BN(string("ffff"));
+    big2.HEX_TO_BN(string("ffff"));
+    Big_Number bigResult = big1 * big2;
+    cout << "ffff * ffff = " << bigResult << "\n\n";
+    
+    // Тест обработки ошибок
+    cout << "8. Тест обработки ошибок:\n";
+    try {
+        Big_Number errorTest = a / (Base)0;
+    } catch (const exception& e) {
+        cout << "Перехвачена ошибка деления на ноль: " << e.what() << "\n";
+    }
+    
+    try {
+        Big_Number smaller, larger;
+        smaller.HEX_TO_BN(string("10"));
+        larger.HEX_TO_BN(string("20"));
+        Big_Number errorTest = smaller - larger;
+    } catch (const exception& e) {
+        cout << "Перехвачена ошибка вычитания: " << e.what() << "\n";
+    }
+    
+    cout << "\n=== ТЕСТИРОВАНИЕ ЗАВЕРШЕНО ===\n";
+}
+
+int main() {
+    srand(time(0));
+    
+    runTests();
+    
+    return 0;
+}
