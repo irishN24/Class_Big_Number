@@ -252,18 +252,14 @@ public:
 
             for (; j < v.len; j++) {
                 tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
-                //tmp = (tmp - v.coef[j] - k);
                 tmp = (D_Base)(tmp - v.coef[j] - k);
                 result.coef[j] = (Base)tmp;
-                //k = (tmp >> Base_SIZE) ? 0 : 1;
                 k = (D_Base)!(tmp >> BASE_SIZE);
             }
             for (; j < len; j++) {
                 tmp = ((D_Base)1 << BASE_SIZE) | (D_Base)coef[j];
-                //tmp -= k;
                 tmp -= (D_Base)k;
                 result.coef[j] = (Base)tmp;
-                //k = (tmp >> Base_SIZE) ? 0 : 1;
                 k = (D_Base)!(tmp >> BASE_SIZE);
             }
             result.len = len;
@@ -358,243 +354,80 @@ public:
     }
     Big_Number& operator %=(const Base &a);
     Big_Number operator /(const Big_Number &v) const{
-            /*if (v.len == 1 && v.coef[0] == 0) {
-                throw invalid_argument("Division by zero!");
-            }
-            if (*this < v) {
-                Big_Number res0(1);
-                return res0;
-            }
-            if (v.len == 1) {
-                return *this / v.coef[0];
-            }
-            D_Base b = (D_Base)1 << Base_SIZE;
-            D_Base d = b / ((D_Base)v.coef[v.len - 1] + 1);
-            Big_Number u1 = *this;
-            u1 *= (Base)d;
-            Big_Number v1 = v;
-            v1 *= (Base)d;
-            if (u1.len == len) {
-                u1.maxlen++;
-                Base* new_u = new Base[u1.maxlen];
-                for (int i = 0; i < u1.len; i++) {
-                    new_u[i] = u1.coef[i];
-                }
-                new_u[u1.len] = 0;
-                delete[] u1.coef;
-                u1.coef = new_u;
-                u1.len++;
-            }
-            int m = len - v.len;  //
-            Big_Number res(m + 1);
-            for (int j = m; j >= 0; j--) {
-                D_Base q_hat;
-                D_Base r_hat;
-                D_Base temp = ((D_Base)u1.coef[j + v1.len] << Base_SIZE) + (D_Base)u1.coef[j + v1.len - 1];
-                q_hat = temp / (D_Base)v1.coef[v1.len - 1];
-                r_hat = temp % (D_Base)v1.coef[v1.len - 1];
-                while (q_hat >= b ||
-                       (v1.len >= 2 && q_hat * (D_Base)v1.coef[v1.len - 2] >
-                                           (r_hat << Base_SIZE) + (D_Base)u1.coef[j + v1.len - 2])) {
-                    q_hat--;
-                    r_hat += (D_Base)v1.coef[v1.len - 1];
-                    if (r_hat >= b) break;
-                }
-                Base k = 0;
-                bool borrow = false;
-                for (int i = 0; i < v1.len; i++) {
-                    D_Base prod = q_hat * (D_Base)v1.coef[i] + (D_Base)k;
-                    Base prod_low = (Base)prod;
-                    k = (Base)(prod >> Base_SIZE);
-                    if (u1.coef[j + i] >= prod_low) {
-                        u1.coef[j + i] -= prod_low;
-                    } else {
-                        u1.coef[j + i] = u1.coef[j + i] + ((D_Base)1 << Base_SIZE) - prod_low;
-                        borrow = true;
-                    }
-                }
-                if (u1.coef[j + v1.len] >= k) {
-                    u1.coef[j + v1.len] -= k;
-                } else {
-                    borrow = true;
-                }
-                if (borrow) {
-                    q_hat--;
-                    Base carry = 0;
-                    for (int i = 0; i < v1.len; i++) {
-                        D_Base sum = (D_Base)u1.coef[j + i] + (D_Base)v1.coef[i] + (D_Base)carry;
-                        u1.coef[j + i] = (Base)sum;
-                        carry = (Base)(sum >> Base_SIZE);
-                    }
-                    u1.coef[j + v1.len] += carry;
-                }
-                res.coef[j] = (Base)q_hat;
-            }
-            res.len = m + 1;
-            while (res.len > 1 && res.coef[res.len - 1] == 0) {
-                res.len--;
-            }
-            return res;*/
         if (v.len == 1 && v.coef[0] == 0)
         {
-            throw invalid_argument("Invalid arguments1.");
+            throw invalid_argument("Invalid arguments.");
         }
         if (*this < v)
         {
-            Big_Number finv(1);
-            return finv;
+            return Big_Number (1);;
         }
         if (v.len == 1)
         {
             return *this / v.coef[0];
         }
         int m = len - v.len;
-        int Base_SIZE = Base_SIZE;
-        D_Base b = ((D_Base)1 << Base_SIZE);
+        D_Base b = ((D_Base)1 << BASE_SIZE);
         D_Base d = b / (D_Base)(v.coef[v.len - 1] + (Base)1);
-        int j = m;
-        int k = 0;
         Big_Number newv = *this;
         newv *= d;
         Big_Number delv = v;
         delv *= d;
-        Big_Number finv(m + 1);
         if (newv.len == len)
         {
-            newv.maxlen++;
-            newv.len = maxlen;
+            Base* new_coef = new Base[newv.len + 1];
+            copy(newv.coef, newv.coef + newv.len, new_coef);
+            new_coef[newv.len] = 0;
             delete[] newv.coef;
-            newv.coef = new Base[maxlen];
-            for (int i = 0; i < len; i++)
-            {
-                newv.coef[i] = coef[i];
-            }
-            newv *= d;
+            newv.coef = new_coef;
             newv.len++;
-            newv.coef[newv.len - 1] = 0;
+            newv.maxlen = newv.len;
         }
-        while (j > -1)
+        cout << "newv: " << newv.Big_Num_To_HEX() << "\n";
+        Big_Number q(m + 1);
+        for(int j = m; j >= 0; j--)
         {
-            D_Base q = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) / (D_Base)(delv.coef[delv.len - 1]));
-            D_Base r = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) % (D_Base)(delv.coef[delv.len - 1]));
+            cout << j << " ";
 
-            if (q == b || (D_Base)((D_Base)(q) * (D_Base)(delv.coef[delv.len - 2])) > (D_Base)((D_Base)((D_Base)(b) * (D_Base)(r)) + (D_Base)(newv.coef[j + delv.len - 2])))
+            D_Base qhat = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) / (D_Base)(delv.coef[delv.len - 1]));
+            cout << (D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) << "\n";
+            cout << (D_Base)(delv.coef[delv.len - 1]) << "\n";
+            cout << "qhat: " <<hex << qhat << "\n";
+            D_Base r = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) % (D_Base)(delv.coef[delv.len - 1]));
+            if (qhat == b || (delv.len > 1 && qhat * delv.coef[delv.len - 2] > (r << BASE_SIZE) + newv.coef[j + delv.len - 2]))
             {
-                q--;
-                r = (D_Base)(r) + (D_Base)(delv.coef[delv.len - 1]);
-                if ((D_Base)(r) < b)
-                {
-                    if (q == b || (D_Base)((D_Base)(q) * (D_Base)(delv.coef[delv.len - 2])) > (D_Base)((D_Base)((D_Base)(b) * (D_Base)(r)) + (D_Base)(newv.coef[j + delv.len - 2])))
-                    {
-                        q--;
-                    }
-                }
+                qhat--;
+                r += delv.coef[delv.len - 1];
+                if (r >= b) break;
             }
+
+
+
             Big_Number u(delv.len + 1);
-            for (int i = 0; i < delv.len + 1; i++)
+            for (int i = 0; i <= delv.len; i++)
             {
                 u.coef[i] = newv.coef[j + i];
             }
-            if (u < delv * (Base)(q))
+            if (u < delv * (Base)(qhat))
             {
-                q--;
+                qhat--;
             }
-            u = u - delv * (Base)(q);
-            finv.coef[j] = (Base)(q);
-            for (int i = 0; i < delv.len + 1; i++)
+            u = u - delv * (Base)(qhat); //меняется newv
+            q.coef[j] = (Base)(qhat);
+            for (int i = 0; i <= delv.len; i++)
             {
                 newv.coef[j + i] = u.coef[i];
             }
-            j--;
+            cout << "newv: " << newv.Big_Num_To_HEX() << "\n";
         }
-        while (finv.len > 1 && finv.coef[finv.len - 1] == 0)
+        while (q.len > 1 && q.coef[q.len - 1] == 0)
         {
-            finv.len--;
+            q.len--;
         }
 
-        return finv;
+        return q;
     }
     Big_Number operator %(const Big_Number &v) const{
-        /*if (v.len == 1 && v.coef[0] == 0) {
-            throw invalid_argument("Division by zero!");
-        }
-        if (*this < v) {
-            return *this;
-        }
-        if (v.len == 1) {
-            return *this % v.coef[0];
-        }
-        D_Base b = (D_Base)1 << Base_SIZE;
-        D_Base d = b / ((D_Base)v.coef[v.len - 1] + 1);
-        Big_Number u1 = *this;
-        u1 *= (Base)d;
-        Big_Number v1 = v;
-        v1 *= (Base)d;
-        if (u1.len == len) {
-            u1.maxlen++;
-            Base* new_u = new Base[u1.maxlen];
-            for (int i = 0; i < u1.len; i++) {
-                    new_u[i] = u1.coef[i];
-            }
-            new_u[u1.len] = 0;
-            delete[] u1.coef;
-            u1.coef = new_u;
-            u1.len++;
-        }
-        int m = u1.len - v1.len;
-        for (int j = m; j >= 0; j--) {
-            D_Base q_hat;
-            D_Base r_hat;
-            D_Base temp = ((D_Base)u1.coef[j + v1.len] << Base_SIZE) + (D_Base)u1.coef[j + v1.len - 1];
-            q_hat = temp / (D_Base)v1.coef[v1.len - 1];
-            r_hat = temp % (D_Base)v1.coef[v1.len - 1];
-            while (q_hat >= b ||
-                        (v1.len >= 2 && q_hat * (D_Base)v1.coef[v1.len - 2] >
-                            (r_hat << Base_SIZE) + (D_Base)u1.coef[j + v1.len - 2])) {
-                q_hat--;
-                r_hat += (D_Base)v1.coef[v1.len - 1];
-                if (r_hat >= b) break;
-            }
-            Base k = 0;
-            bool borrow = false;
-            for (int i = 0; i < v1.len; i++) {
-                D_Base prod = q_hat * (D_Base)v1.coef[i] + (D_Base)k;
-                Base prod_low = (Base)prod;
-                k = (Base)(prod >> Base_SIZE);
-                if (u1.coef[j + i] >= prod_low) {
-                        u1.coef[j + i] -= prod_low;
-                } else {
-                        u1.coef[j + i] = u1.coef[j + i] + ((D_Base)1 << Base_SIZE) - prod_low;
-                        borrow = true;
-                }
-            }
-            if (u1.coef[j + v1.len] >= k) {
-                u1.coef[j + v1.len] -= k;
-            } else {
-                borrow = true;
-            }
-            if (borrow) {
-                Base carry = 0;
-                for (int i = 0; i < v1.len; i++) {
-                    D_Base sum = (D_Base)u1.coef[j + i] + (D_Base)v1.coef[i] + (D_Base)carry;
-                    u1.coef[j + i] = (Base)sum;
-                    carry = (Base)(sum >> Base_SIZE);
-                }
-                u1.coef[j + v1.len] += carry;
-            }
-        }
-        Big_Number r(v1.len);
-        for(int i = 0; i < v1.len; i++){
-            r.coef[i] = u1.coef[i];
-        }
-        r.len = v1.len;
-        while (r.len > 1 && r.coef[r.len - 1] == 0) {
-            r.len--;
-        }
-        if(d > 1){
-            r /= (Base)d;
-        }
-        return r;*/
         if (v.len == 1 && v.coef[0] == 0)
         {
             throw invalid_argument("Invalid arguments.");
@@ -608,75 +441,55 @@ public:
         {
             return *this % v.coef[0];
         }
-
-        int m = len - v.len;
-
         D_Base b = ((D_Base)(1) << (BASE_SIZE));
-        Base d = (Base)((D_Base)(b) / (D_Base)((v.coef[v.len - 1]) + (Base)(1)));
-        int j = m;
+        D_Base d = b / (D_Base)((v.coef[v.len - 1]) + (Base)(1));
         int k = 0;
 
         Big_Number newv = *this;
-        newv *= d;
+        newv = newv * d;
         Big_Number delv = v;
-        delv *= d;
+        delv = delv * d;
         if (newv.len == len)
         {
-            newv.maxlen++;
-            newv.len = maxlen;
-            newv.coef = new Base[maxlen];
-            for (int i = 0; i < len; i++)
-            {
-                newv.coef[i] = coef[i];
-            }
-            newv *= d;
+            Base* new_coef = new Base[newv.len + 1];
+            copy(newv.coef, newv.coef + newv.len, new_coef);
+            new_coef[newv.len] = 0;
+            delete[] newv.coef;
+            newv.coef = new_coef;
             newv.len++;
-            newv.coef[newv.len - 1] = 0;
+            newv.maxlen = newv.len;
         }
-
-        while (j > -1)
+        int m = newv.len - delv.len;
+        for(int j = m; j >= 0; j--)
         {
-            D_Base q = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) / (D_Base)(delv.coef[delv.len - 1]));
-            D_Base r = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) % (D_Base)(delv.coef[delv.len - 1]));
-            if (q == b || (D_Base)((D_Base)(q) * (D_Base)(delv.coef[delv.len - 2])) > (D_Base)((D_Base)((D_Base)(b) * (D_Base)(r)) + (D_Base)(newv.coef[j + delv.len - 2])))
+            D_Base qhat = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) / (D_Base)(delv.coef[delv.len - 1]));
+            D_Base rhat = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) % (D_Base)(delv.coef[delv.len - 1]));
+            if (qhat == b || (D_Base)((D_Base)(qhat) * (D_Base)(delv.coef[delv.len - 2])) > (D_Base)((D_Base)((D_Base)(b) * (D_Base)(rhat)) + (D_Base)(newv.coef[j + delv.len - 2])))
             {
-                q--;
-                r = (D_Base)(r) + (D_Base)(delv.coef[delv.len - 1]);
-                if ((D_Base)(r) < b)
+                qhat--;
+                rhat = (D_Base)(rhat) + (D_Base)(delv.coef[delv.len - 1]);
+                if ((D_Base)(rhat) < b)
                 {
-                    if (q == b || (D_Base)((D_Base)(q) * (D_Base)(delv.coef[delv.len - 2])) > (D_Base)((D_Base)((D_Base)(b) * (D_Base)(r)) + (D_Base)(newv.coef[j + delv.len - 2])))
+                    if (qhat == b || (D_Base)((D_Base)(qhat) * (D_Base)(delv.coef[delv.len - 2])) > (D_Base)((D_Base)((D_Base)(b) * (D_Base)(rhat)) + (D_Base)(newv.coef[j + delv.len - 2])))
                     {
-                        q--;
+                        qhat--;
                     }
                 }
             }
-            Big_Number u(delv.len + 1);
-            for (int i = 0; i < delv.len + 1; i++)
-            {
-                u.coef[i] = newv.coef[j + i];
-            }
-
-            if (u < delv * (Base)(q)) //
-            {
-
-                q--;
-            }
-
-            u = u - (delv * (Base)(q));
-
-            for (int i = 0; i < delv.len + 1; i++)
-            {
-                newv.coef[j + i] = u.coef[i];
-            }
-
-            j--;
         }
-        while (newv.len > 1 && newv.coef[newv.len - 1] == 0)
+        Big_Number r(delv.len);
+        for (int i = 0; i < delv.len; i++)
         {
-            newv.len--;
+            r.coef[i] = newv.coef[i];
+        }
+        r.len = delv.len;
+        r /= (Base)d;
+        while (r.len > 1 && r.coef[r.len - 1] == 0)
+        {
+            r.len--;
         }
 
-        return newv / d;
+        return r;
     }
     Big_Number& operator %=(const Big_Number &v);
     Big_Number& operator /=(const Big_Number &v);
@@ -795,17 +608,17 @@ int main() {
     string str1 = "4cfb1c1f4df76d";
     Big_Number v4;
     v4.HEX_TO_BN(str1);
-    cout << "Num4: " << v4 << "\n";
+    cout << "Num4: " << v4.Big_Num_To_HEX() << "\n";
     string str2 = "a43e";
     Big_Number v5;
     v5.HEX_TO_BN(str2);
-    cout << "Num5: " << v5 << "\n";
+    cout << "Num5: " << v5.Big_Num_To_HEX() << "\n";
     Big_Number v6 = v4 * v5;
-    cout << "Num6 = " << v6 << "\n";
+    cout << "Num6 = " << v6.Big_Num_To_HEX() << "\n";
     Big_Number v7 = v6 / v5;
-    cout << "Num7 = " << v7 << "\n";
+    cout << "Num7 = " << v7.Big_Num_To_HEX() << "\n";
     Big_Number v8 = v6 % v5;
-    cout << "Num8 = " << v8 << "\n";
+    cout << "Num8 = " << v8.Big_Num_To_HEX() << "\n";
     //test();
 
     return 0;
