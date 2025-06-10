@@ -105,7 +105,7 @@ public:
         if (k != string::npos) {
             result = result.substr(k);
         }
-        else{
+        else {
             result = '0';
         }
         return result;
@@ -231,7 +231,7 @@ public:
         }
         return w;
     }
-    Big_Number operator +(const Base& v) const{
+    Big_Number operator +(const Base& v) const {
         int l = len + 1;
         Big_Number res(l);
         D_Base tmp = (D_Base)coef[0] + (D_Base)v;
@@ -275,14 +275,14 @@ public:
                 result.len--;
             }
             return result;
-        }        
+        }
         else {
             throw invalid_argument("ERROR: U < V!!!");
         }
     }
     Big_Number& operator -=(const Big_Number& v);
     Big_Number operator *(const Base& a) const {
-        if(a==0) return Big_Number(1);
+        if (a == 0) return Big_Number(1);
         Big_Number w(len + 1);
         int j = 0;
         Base k = 0;
@@ -309,7 +309,7 @@ public:
 
         return w;
     }
-    Big_Number& operator *=(const Base &a);
+    Big_Number& operator *=(const Base& a);
     Big_Number operator *(const Big_Number& v) const {
         Big_Number w(len + v.len);
         int j = 0;
@@ -332,8 +332,8 @@ public:
         }
         return w;
     }
-    Big_Number& operator *=(const Big_Number &v);
-    Big_Number operator /(const Base &a) const {
+    Big_Number& operator *=(const Big_Number& v);
+    Big_Number operator /(const Base& a) const {
         if (a == 0) {
             throw invalid_argument("DIVISION BY ZERO!!!!");
         }
@@ -352,8 +352,8 @@ public:
         }
         return q;
     }
-    Big_Number& operator /=(const Base &a);
-    Big_Number operator %(const Base& a) const{
+    Big_Number& operator /=(const Base& a);
+    Big_Number operator %(const Base& a) const {
         if (a == 0) {
             throw invalid_argument("Division by zero in modulo operation!");
         }
@@ -366,17 +366,17 @@ public:
         res.coef[0] = (Base)r;
         return res;
     }
-    Big_Number& operator %=(const Base &a);
-    Big_Number operator /(const Big_Number &v) const{
+    Big_Number& operator %=(const Base& a);
+    Big_Number operator /(const Big_Number& v) const {
         if (v.len == 1 && v.coef[0] == 0)
         {
             throw invalid_argument("Invalid arguments.");
         }
         if (*this < v)
         {
-            return Big_Number (1);;
+            return Big_Number(1);
         }
-        if(*this == v){
+        if (*this == v) {
             Big_Number res(1);
             res.coef[0] = 1;
             return res;
@@ -388,88 +388,60 @@ public:
         int m = len - v.len;
         D_Base b = ((D_Base)1 << BASE_SIZE);
         D_Base d = b / (D_Base)(v.coef[v.len - 1] + (Base)1);
-        //cout << "d: " << d << "\n";
-        Big_Number newv = *this;
+        Big_Number newu = *this;
+        newu *= d;
+        Big_Number newv = v;
         newv *= d;
-        Big_Number delv = v;
-        delv *= d;
-        //cout << "delv: " << delv.Big_Num_To_HEX() << "\n";
-        if (newv.len == len)
+        if (newu.len == len)
         {
-            Base* new_coef = new Base[newv.len + 1];
-            copy(newv.coef, newv.coef + newv.len, new_coef);
-            new_coef[newv.len] = 0;
-            delete[] newv.coef;
-            newv.coef = new_coef;
-            newv.len++;
-            newv.maxlen = newv.len;
+            Base* new_coef = new Base[newu.len + 1];
+            copy(newu.coef, newu.coef + newu.len, new_coef);
+            new_coef[newu.len] = 0;
+            delete[] newu.coef;
+            newu.coef = new_coef;
+            newu.len++;
+            newu.maxlen = newu.len;
         }
-        //int m = newv.len - delv.len;
-        //cout << "newv: " << newv.Big_Num_To_HEX() << "\n";
         Big_Number q(m + 1);
         for (int j = m; j >= 0; j--)
         {
-           // cout << "j = " << j << "\n";
-            D_Base qhat = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) / (delv.coef[v.len - 1]));
-/*
-            cout << (D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) << "\n";
-            cout << (D_Base)(delv.coef[v.len - 1]) << "\n";
-            cout << "qhat: " << hex << qhat << "\n";
-*/
-            D_Base r = (D_Base)((D_Base)((D_Base)((D_Base)(newv.coef[j + delv.len]) * (D_Base)(b)) + (D_Base)(newv.coef[j + delv.len - 1])) % (D_Base)(delv.coef[delv.len - 1]));
-            //cout << "rhat: " << hex << r << "\n";
-            while (qhat >= b || (qhat * delv.coef[delv.len - 2] > (r << BASE_SIZE) + newv.coef[j + delv.len - 2]))
+            D_Base qhat = (D_Base)((D_Base)((D_Base)((D_Base)(newu.coef[j + newv.len]) * (D_Base)(b)) + (D_Base)(newu.coef[j + newv.len - 1])) / (newv.coef[v.len - 1]));
+            D_Base r = (D_Base)((D_Base)((D_Base)((D_Base)(newu.coef[j + newv.len]) * (D_Base)(b)) + (D_Base)(newu.coef[j + newv.len - 1])) % (D_Base)(newv.coef[newv.len - 1]));
+            while (qhat >= b || (qhat * newv.coef[newv.len - 2] > (r << BASE_SIZE) + newu.coef[j + newv.len - 2]))
             {
-                //cout << "..1.." << "\n";
                 qhat--;
-                //cout << "qhat: " << hex << qhat << "\n";
-                r += delv.coef[delv.len - 1];
-                //cout << "rhat: " << hex << r << "\n";
+                r += newv.coef[newv.len - 1];
                 q.coef[j] = (Base)qhat;
                 q.len = m + 1;
-                //cout << "q: " << q.Big_Num_To_HEX() << "\n";
                 if (r >= b)
                 {
                     break;
                 }
             }
-            Big_Number u(delv.len + 1);
-            for (int i = 0; i <= delv.len; i++)
+            Big_Number u(newv.len + 1);
+            for (int i = 0; i <= newv.len; i++)
             {
-                u.coef[i] = newv.coef[j + i];
+                u.coef[i] = newu.coef[j + i];
             }
-            u.len = delv.len + 1;
-            /*cout << "u: " << u.Big_Num_To_HEX() << "\n";
-            cout << "(Base)qhat: " << hex << (int)(Base)qhat << "\n";
-            cout << "delv: " << delv.Big_Num_To_HEX() << "\n";*/
-
-            /*Big_Number hatq = (Base)qhat;
-            cout << "hatq: " << hatq.Big_Num_To_HEX() << "\n";*/
-            //cout << "delv.len: " << delv.len << "\n";
-            Big_Number p = delv * qhat;//00000000
-            //cout << "p.len: " << p.len << "\n";
-            //cout << "p: " << p.Big_Num_To_HEX() << "\n";
+            u.len = newv.len + 1;
+            Big_Number p = newv * qhat;
             if (u < p)
             {
-               // cout << "..2.." << "\n";
                 qhat--;
-                p = delv * (Base)qhat;
+                p = newv * (Base)qhat;
             }
             Big_Number tmp = u - p;
-            //cout << "tmp: " << tmp.Big_Num_To_HEX() << "\n";
-            for (int i = 0; i <= delv.len; i++)
+            for (int i = 0; i <= newv.len; i++)
             {
                 if (i < tmp.len) {
-                    newv.coef[j + i] = tmp.coef[i];
+                    newu.coef[j + i] = tmp.coef[i];
                 }
                 else {
-                    newv.coef[j + i] = 0;
+                    newu.coef[j + i] = 0;
                 }
             }
             q.coef[j] = (Base)qhat;
             q.len = m + 1;
-            //cout << "q: " << q.Big_Num_To_HEX() << "\n";
-            //cout << "newv: " << newv.Big_Num_To_HEX() << "\n";
         }
         while (q.len > 1 && q.coef[q.len - 1] == 0)
         {
@@ -477,7 +449,7 @@ public:
         }
         return q;
     }
-    Big_Number operator %(const Big_Number &v) const{
+    Big_Number operator %(const Big_Number& v) const {
         if (v.len == 1 && v.coef[0] == 0) {
             throw invalid_argument("Division by zero!!!");
         }
@@ -491,35 +463,35 @@ public:
         Big_Number r = *this - (q * v);
         return r;
     }
-    Big_Number& operator %=(const Big_Number &v);
-    Big_Number& operator /=(const Big_Number &v);
-    string cout_10() const{
-        if(len == 1 && coef[0] == 0){
+    Big_Number& operator %=(const Big_Number& v);
+    Big_Number& operator /=(const Big_Number& v);
+    string cout_10() const {
+        if (len == 1 && coef[0] == 0) {
             return "0";
         }
         Big_Number tmp = *this;
         string res = "";
-        while(!(tmp.len == 1 && tmp.coef[0] == 0)){
+        while (!(tmp.len == 1 && tmp.coef[0] == 0)) {
             Big_Number r = tmp % (Base)10;
             res = char('0' + r.coef[0]) + res;
             tmp = tmp / (Base)10;
         }
         return res.empty() ? "0" : res;
     }
-    void cin_10(const string& str_10){
-        if(str_10.empty()){
+    void cin_10(const string& str_10) {
+        if (str_10.empty()) {
             len = 1;
             coef[0] = 0;
             return;
         }
-        for(char c : str_10){
-            if(c < '0' || c > '9'){
+        for (char c : str_10) {
+            if (c < '0' || c > '9') {
                 throw invalid_argument("INCORRECT SYMBOL!!!\n");
             }
         }
         len = 1;
         fill(coef, coef + maxlen, 0);
-        for(char c : str_10){
+        for (char c : str_10) {
             int k = c - '0';
             *this = *this * (Base)10;
             Big_Number res(1);
@@ -527,23 +499,23 @@ public:
             *this = *this + k;
         }
     }
-    friend istream &operator >>(istream &in, Big_Number &bn) {
+    friend istream& operator >>(istream& in, Big_Number& bn) {
         string str_10;
         in >> str_10;
-        try{
+        try {
             bn.cin_10(str_10);
         }
         catch (const exception& i) {
             in.setstate(iostream::failbit);
-            cout << "Incorrect vber: " << i.what() << "\n";
+            cout << "Incorrect number: " << i.what() << "\n";
         }
         return in;
     }
-    friend ostream &operator <<(ostream &os, const Big_Number &bn) {
+    friend ostream& operator <<(ostream& os, const Big_Number& bn) {
         os << bn.cout_10();
         return os;
     }
-    void test();
+
 };
 Big_Number& Big_Number::operator+=(const Big_Number& v) {
     *this = *this + v;
@@ -557,56 +529,41 @@ Big_Number& Big_Number::operator-=(const Big_Number& v) {
     *this = *this - v;
     return *this;
 }
-Big_Number& Big_Number::operator*=(const Base &a){
+Big_Number& Big_Number::operator*=(const Base& a) {
     *this = *this * a;
     return *this;
 }
-Big_Number& Big_Number::operator*=(const Big_Number &v){
+Big_Number& Big_Number::operator*=(const Big_Number& v) {
     *this = *this * v;
     return *this;
 }
-Big_Number& Big_Number::operator/=(const Base &a){
+Big_Number& Big_Number::operator/=(const Base& a) {
     *this = *this / a;
     return *this;
 }
-Big_Number& Big_Number::operator%=(const Base &a){
+Big_Number& Big_Number::operator%=(const Base& a) {
     *this = *this % a;
     return *this;
 }
-Big_Number& Big_Number::operator/=(const Big_Number &v){
-   *this = *this / v;
-   return *this;
+Big_Number& Big_Number::operator/=(const Big_Number& v) {
+    *this = *this / v;
+    return *this;
 }
-Big_Number& Big_Number::operator %=(const Big_Number &v){
-   *this = *this % v;
-   return *this;
+Big_Number& Big_Number::operator %=(const Big_Number& v) {
+    *this = *this % v;
+    return *this;
 }
-/*void test(){
+void test() {
     int max_len = 1000;
     int N = 1000;
     Big_Number A, D, Q, R;
-    do{
+    int count = 0;
+    do {
         int len_A = rand() % max_len + 1;
         int len_d = rand() % max_len + 1;
         Big_Number E(len_A, 1);
         Big_Number G(len_d, 1);
-        A = E;
-        D = G;
-        Q = A / D;
-        R = A % D;
-    }while(A == Q * D + R && A - R == Q * D && R < D && --N >= 0);
-}*/
-void test() {
-   int max_len = 15;
-   int N = 1000;
-   Big_Number A, D, Q, R;
-   int count = 0;
-   do {
-        int len_A = rand() % max_len + 1;
-        int len_d = rand() % max_len + 1;
-        Big_Number E(len_A, 1);
-        Big_Number G(len_d, 1);
-        if(G == 0){
+        if (G == 0) {
             G = Big_Number(len_d, 1);
         }
         A = E;
@@ -622,16 +579,16 @@ void test() {
             break;
         }
         count++;
-   } while (A == Q * D + R && A - R == Q * D && R < D && --N >= 0);
-   cout << count << "\n";
+    } while (A == Q * D + R && A - R == Q * D && R < D && --N >= 0);
+    cout << count << "\n";
 }
 
 int main() {
     srand(time(0));
-   string str0 = "fd";
-   Big_Number v1;
-   v1.HEX_TO_BN(str0);
-   cout <<  v1.Big_Num_To_HEX()<<"\n";
+    /*string str0 = "fd";
+    Big_Number v1;
+    v1.HEX_TO_BN(str0);
+    cout << v1.Big_Num_To_HEX() << "\n";*/
     /*Big_Number v1(5, 1);
     cout << "Big_v1: " << v1 << "\n";
     Big_Number v2(12, 1);
@@ -646,9 +603,9 @@ int main() {
     string str = "58";
     Base v2 = (Base)58;
     //v2.HEX_TO_BN(str);
-    cout << "v1 * v2: " << (v1*v2).Big_Num_To_HEX()<<"\n";
+    cout << "v1 * v2: " << (v1*v2).Big_Num_To_HEX()<<"\n";*/
 
-    string str1 = "4b3cf23c311de6eb0cc61d90";
+    /*string str1 = "4b3cf23c311de6eb0cc61d90";
     Big_Number v4;
     v4.HEX_TO_BN(str1);
     cout << "Num4: " << v4 << "\n";
