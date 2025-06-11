@@ -441,8 +441,8 @@ public:
                 }
             }
             q.coef[j] = (Base)qhat;
-            q.len = m + 1;
         }
+        q.len = m + 1;
         while (q.len > 1 && q.coef[q.len - 1] == 0)
         {
             q.len--;
@@ -515,7 +515,6 @@ public:
         os << bn.cout_10();
         return os;
     }
-
 };
 Big_Number& Big_Number::operator+=(const Big_Number& v) {
     *this = *this + v;
@@ -562,6 +561,7 @@ void test() {
         int len_A = rand() % max_len + 1;
         int len_d = rand() % max_len + 1;
         Big_Number E(len_A, 1);
+        cout << count <<" "<< len_A <<" "<< len_d << "\n";
         Big_Number G(len_d, 1);
         if (G == 0) {
             G = Big_Number(len_d, 1);
@@ -585,40 +585,16 @@ void test() {
 
 int main() {
     srand(time(0));
-    /*string str0 = "fd";
-    Big_Number v1;
-    v1.HEX_TO_BN(str0);
-    cout << v1.Big_Num_To_HEX() << "\n";*/
-    /*Big_Number v1(5, 1);
-    cout << "Big_v1: " << v1 << "\n";
-    Big_Number v2(12, 1);
-    cout << "Big_v2: " << v2 << "\n";
-    Big_Number v3 = v1 + (Base)6;
-    cout << "Big_v3: " << v3 << "\n";
-    v3 -= v2;
-    cout << "Big_v3: " << v3 << "\n";*/
-    /*string str0 = "da303600c9";
-    Big_Number v1;
-    v1.HEX_TO_BN(str0);
-    string str = "58";
-    Base v2 = (Base)58;
-    //v2.HEX_TO_BN(str);
-    cout << "v1 * v2: " << (v1*v2).Big_Num_To_HEX()<<"\n";*/
-
-    /*string str1 = "4b3cf23c311de6eb0cc61d90";
-    Big_Number v4;
-    v4.HEX_TO_BN(str1);
-    cout << "Num4: " << v4 << "\n";
-    string str2 = "da303600c9";
-    Big_Number v5;
-    v5.HEX_TO_BN(str2);
-    cout << "Num5: " << v5 << "\n";
-    //Big_Number v6 = v4 * v5;
-    //cout << "Num6 = " << v6.Big_Num_To_HEX() << "\n";
-    Big_Number v7 = v4 / v5;
-    cout << "Num7 = " << v7 << "\n";
-    //Big_Number v8 = v6 % v5;
-    //cout << "Num8 = " << v8.Big_Num_To_HEX() << "\n";*/
+    Big_Number v4(12, 1);
+    cout << "Num4: " << v4.Big_Num_To_HEX() << "\n";
+    Big_Number v5(5, 1);
+    cout << "Num5: " << v5.Big_Num_To_HEX() << "\n";
+    Big_Number v6 = v4 * v5;
+    cout << "Num6 = " << v6.Big_Num_To_HEX() << "\n";
+    Big_Number v7 = v6 / v5;
+    cout << "Num7 = " << v7.Big_Num_To_HEX() << "\n";
+    Big_Number v8 = v6 % v5;
+    cout << "Num8 = " << v8.Big_Num_To_HEX() << "\n";
     test();
 
     return 0;
